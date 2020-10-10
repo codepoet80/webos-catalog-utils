@@ -1,0 +1,63 @@
+{
+  "publicApplicationId": "com.jakyl.spirithd",
+  "description": "Spirit, by Marco Mazzoli. The critically acclaimed iPhone hit now on webOS!\n\nSimple and fun to play. No shooting. No on-screen controls. Just slide your finger and Spirit will mimic your movements. \n\nCheck out what people are saying about it:\n\n• \"Spirit is a paradigm example of independent game development for the iPhone\" - 'Must Have', No DPad \n\n• \"If you're looking for a challenging new arcade experience, this one's easy to recommend\" - Touch Arcade\n\n• \"Spirit is a budget gem you don’t want to miss\" - TouchGen\n\n• \"One of the best arcade-style apps on the App Store right now\" - GameZebo\n\n• \"The experience is incredibly fluid and seamless. It just feels right, and no amount of screen-shots can do it justice\" - themacfeed.com\n\n• \"Hypnotic, compelling stuff\" - The Sunday Times\n\n• \"Slick control scheme meets fantastic visual effects and sound design; this is the complete arcade package\" - Games Uncovered \n\nTake control of Spirit in an intense retro inspired arcade experience, reinvented for mobile devices.\n\nGuide Spirit against many different enemy types, and distort space to force them into another dimension.\n\nFeatures a fluid, easy to play yet hard to master control system. Relative movement allows you to keep your finger out of the way of the action.\n\nCombine links and combos to build up huge scores. Fight your way through increasingly challenging waves, uniquely generated for each game.\n\nPlease email us with any questions or comments.",
+  "version": "1.5.3",
+  "homeURL": "http://www.spiritapp.com",
+  "supportURL": "http://www.spiritapp.com",
+  "custsupportemail": "",
+  "custsupportphonenum": "",
+  "copyright": "(C)Copyright Marco Mazzoli 2009-11",
+  "licenseURL": "http://www.spiritapp.com",
+  "locale": null,
+  "appSize": "13210586",
+  "installSize": "13210586",
+  "isEncrypted": null,
+  "adultRating": null,
+  "islocationbased": null,
+  "lastModifiedTime": null,
+  "mediaLink": null,
+  "mediaIcon": null,
+  "attributes": [],
+  "price": "1.98",
+  "currency": "USD",
+  "filename": "com.jakyl.spirithd_1.5.3_all.ipk",
+  "free": false,
+  "images": [
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2011/05/banner1024x500-140x94.png",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2011/05/banner1024x500-430x283.png",
+      "orientation": "L",
+      "device": "P"
+    },
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-2.jpg",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-2.jpg",
+      "orientation": "L",
+      "device": "P"
+    },
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-4.jpg",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-4.jpg",
+      "orientation": "L",
+      "device": "P"
+    },
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-3.jpg",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-3.jpg",
+      "orientation": "P",
+      "device": "P"
+    },
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-1.jpg",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-1.jpg",
+      "orientation": "P",
+      "device": "P"
+    },
+    {
+      "thumbnail": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-5.jpg",
+      "screenshot": "http://www.jakyl.co.uk/wp-content/uploads/2012/02/spirit-5.jpg",
+      "orientation": "P",
+      "device": "P"
+    }
+  ]
+}
