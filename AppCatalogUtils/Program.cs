@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 
 namespace AppCatalogUtils
 {
@@ -101,7 +102,7 @@ namespace AppCatalogUtils
             Console.WriteLine("4) * Update catalog from metadata");
             Console.WriteLine("5) Reverse catalog check from folder");
             Console.WriteLine("6) Scrape Wayback Machine for images to destination");
-            Console.WriteLine("7) * Scrape icons from packages in folder to destination");
+            Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Generate catalog files from extant apps");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
@@ -110,7 +111,6 @@ namespace AppCatalogUtils
 
         public static bool GetMenuChoice(List<AppDefinition> appCatalog)
         {
-            string userDir;
             ConsoleKeyInfo choice = Console.ReadKey();
             switch (choice.Key)
             {
@@ -186,7 +186,7 @@ namespace AppCatalogUtils
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Not implemented");
+                        GetAppIconsFromCatalog(appCatalog);
                         return true;
                     }
                 case ConsoleKey.D8: //Generate extant Catalog
@@ -277,7 +277,7 @@ namespace AppCatalogUtils
                                 appUpdates++;
                                 fileMatches++;
                                 if (searchFolder != appPackageDir)
-                                    File.Move(Path.Combine(searchFolder, updateFile), Path.Combine(appUpdateDir, fileName), true);
+                                    File.Move(Path.Combine(searchFolder, updateFile), Path.Combine(appUpdateDir, Path.GetFileName(updateFile)), true);
                             }
                         }
                         //Add findings to report
@@ -438,13 +438,11 @@ namespace AppCatalogUtils
                 int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
                 Console.Write(percentDone.ToString() + "% - ");
 
-                bool found = true;
                 if (!appFileNames.Contains(pkgFileName))
                 {
                     //If the current package file is not found in the metadata file index
                     Console.Write("Missing: ");
                     objWriter.WriteLine(pkgFileName);
-                    found = false;
                     totalMissing++;
                 }
                 else
@@ -467,20 +465,104 @@ namespace AppCatalogUtils
             Console.WriteLine("Missing Item report: " + FileReverseReport);
         }
 
-        public static void ScrapeWayBackMachine(List<AppDefinition> appCatalog)
+        public static void GetAppIconsFromCatalog(List<AppDefinition> appCatalog)
         {
-            //Loop through catalog
-                //Load individual meta file
-                //Calculate expected path
-                //Load HTML from path
-                //Scrape out iframe src
-                //Fetch iframe src to filename as dictate by meta file
-            //OR
-            //Loop through Wayback JSON
-                //Load HTML from each path
-                //Scrape out iframe src
-                //Fetch iframe src to file
-                //Somehow match meta file to filename
+            Console.WriteLine("Searching for app icons on the web...");
+            int i = 0;
+            StreamWriter objWriter;
+            objWriter = new StreamWriter(Path.Combine(destBaseDir, "missingIcons.csv"));
+            foreach (var appObj in appCatalog)
+            {
+                i++;
+                bool iconMissing = false;
+                string bigIconPath = appObj.appIconBig;
+                string smallIconPath = appObj.appIcon;
+                if (bigIconPath != string.Empty)
+                {
+                    //Find icon file names
+                    string[] bigIconPathParts = bigIconPath.Split("/");
+                    string bigIcon = bigIconPathParts[bigIconPathParts.Length - 1];
+                    
+                    //Find and/or make icon directories
+                    string bigIconDir = Path.Combine(appImageDir, appObj.id.ToString(), "icon");
+                    if (!Directory.Exists(bigIconDir))
+                        Directory.CreateDirectory(bigIconDir);
+
+                    //Try to get the image
+                    string iconSavePath = Path.Combine(bigIconDir, bigIcon);
+                    if (!File.Exists(iconSavePath))
+                    {
+                        if (!TryGetImageFromPalmCDN(bigIconPath, iconSavePath))
+                        {
+                            if (!TryGetImageFromWayBackMachine(bigIconPath, iconSavePath))
+                            {
+                                Console.WriteLine("Could not get big icon for " + appObj.id + " from any source");
+                                iconMissing = true;
+                            }
+                        }
+                        else
+                            Console.WriteLine("Got big icon for:   " + appObj.id + "");
+                    }
+                }
+                if (smallIconPath != string.Empty)
+                {
+                    //Find icon file names
+                    string[] smallIconPathParts = smallIconPath.Split("/");
+                    string smallIcon = smallIconPathParts[smallIconPathParts.Length - 1];
+
+                    //Find and/or make icon directories
+                    string smallIconDir = Path.Combine(appImageDir, appObj.id.ToString(), "icon", "s");
+                    if (!Directory.Exists(smallIconDir))
+                        Directory.CreateDirectory(smallIconDir);
+
+                    //Try to get the image
+                    string iconSavePath = Path.Combine(smallIconDir, smallIcon);
+                    if (!File.Exists(iconSavePath))
+                    {
+                        if (!TryGetImageFromPalmCDN(bigIconPath, iconSavePath))
+                        {
+                            if (!TryGetImageFromWayBackMachine(bigIconPath, iconSavePath))
+                            {
+                                Console.WriteLine("Could not get small icon for " + appObj.id + " from any source");
+                                iconMissing = true;
+                            }
+                        }
+                        else
+                            Console.WriteLine("Got small icon for: " + appObj.id + "");
+                    }
+                }
+                if (iconMissing)
+                {
+                    objWriter.WriteLine(appObj.id.ToString());
+                }
+                Console.WriteLine((appCatalog.Count - i).ToString() + " apps remaining...");
+            }
+            objWriter.Close();
+        }
+
+        public static bool TryGetImageFromPalmCDN(string getPath, string savePath)
+        {
+            string palmCDNPath = "http://cdn.downloads.palm.com/public/" + getPath;
+            try
+            {
+                using (System.Net.WebClient client = new WebClient())
+                {
+                    client.DownloadFile(new Uri(palmCDNPath), savePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public static bool TryGetImageFromWayBackMachine(string getPath, string savePath)
+        {
+            //string palmCDNPath = "http://palm.com/" + getPath;
+            //download image from HTTP to savePath
+            //return true if it works, or...
+            return false;
         }
 
         public static void GenerateExtantCatalog(List<AppDefinition> appCatalog)
@@ -523,7 +605,6 @@ namespace AppCatalogUtils
             WriteCatalogFile("Extant", extantAppCatalog);
             WriteCatalogFile("Missing", missingAppCatalog);
         }
-        #endregion
         public static void WriteCatalogFile(string catalogName, List<AppDefinition> newAppCatalog)
         {
             Console.WriteLine(catalogName + " app catalog count: " + newAppCatalog.Count);
@@ -533,7 +614,9 @@ namespace AppCatalogUtils
             objWriter.WriteLine(newAppCatJson);
             objWriter.Close();
         }
+
+        #endregion
     }
 
-    
+
 }
