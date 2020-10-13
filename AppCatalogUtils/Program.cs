@@ -634,14 +634,20 @@ namespace AppCatalogUtils
 
                         if (!TrySortImageFromFolder(metaFileIndexStr, "L", screenshotFile, screenshotPath, searchFolder))
                         {
-                            Console.WriteLine("Not found");
-                            totalMissing++;
-                            screensFound++;
+                            //TODO: Update screen
+                            //Fall back to Palm CDN... TODO: then Wayback?
+                            string savePath = Path.Combine(appImageDir, screenshotPath.Replace("/", "\\"));
+                            if (!TryGetImageFromPalmCDN(screenshotPath, savePath))
+                            {
+                                Console.WriteLine("Not found");
+                                totalMissing++;
+                                screensMissing++;
+                            }
                         }
                         else
                         {
                             Console.WriteLine("Found");
-                            screensMissing++;
+                            screensFound++;
                             totalFound++;
                         }
                     }
@@ -655,9 +661,15 @@ namespace AppCatalogUtils
 
                         if (!TrySortImageFromFolder(metaFileIndexStr, "S", thumbnailFile, thumbnailPath, searchFolder))
                         {
-                            Console.WriteLine("Not found");
-                            totalMissing++;
-                            thumbsMissing++;
+                            //TODO: Update screen
+                            //Fall back to Palm CDN... TODO: then Wayback?
+                            string savePath = Path.Combine(appImageDir, thumbnailPath.Replace("/", "\\"));
+                            if (!TryGetImageFromPalmCDN(thumbnailPath, savePath))
+                            {
+                                Console.WriteLine("Not found");
+                                totalMissing++;
+                                thumbsMissing++;
+                            }
                         }
                         else
                         {
@@ -674,8 +686,8 @@ namespace AppCatalogUtils
             }
             objWriter.Close();
             Console.WriteLine();
-            Console.WriteLine("Total Meta Files:             " + fileEntries.Length.ToString());
-            Console.WriteLine("Total Images Found: " + totalFound.ToString());
+            Console.WriteLine("Total Meta Files:     " + fileEntries.Length.ToString());
+            Console.WriteLine("Total Images Found:   " + totalFound.ToString());
             Console.WriteLine("Total Images Missing: " + totalMissing.ToString());
             Console.WriteLine();
             Console.WriteLine("Detailed report: " + ImageSortReport);
@@ -702,7 +714,7 @@ namespace AppCatalogUtils
         {
             string searchImage = appId + "_" + imageSize + "_uri_" + imageFile;
             imagePath = imagePath.Replace("/", "\\");
-            Console.Write("     Sorting " + searchImage + "...");
+            Console.Write("   Sorting " + searchImage + "...");
             searchImage = Path.Combine(searchPath, searchImage);
             if (File.Exists(searchImage))
             {
