@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +10,7 @@ namespace AppCatalogUtils
     class Program
     {
         #region Environment and UI
+        [JsonObject]
         public class AppDefinition
         {
             public int id;
@@ -28,6 +30,15 @@ namespace AppCatalogUtils
             public bool touchpad_exclusive;
         }
 
+        [JsonObject]
+        public class ScreenshotDefinition
+        {
+            public string screenshot;
+            public string thumbnail;
+            public string orientation;
+            public string device;
+        }
+
         public static string catalogFile;
         public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\");
         public static string fileDir = @"D:\webOS";
@@ -44,6 +55,7 @@ namespace AppCatalogUtils
         public static string catalogIndexReport = @"CatalogIndexResults.csv";
         public static string MetaReverseReport = @"MetaReverseReport.csv";
         public static string FileReverseReport = @"FileReverseReport.csv";
+        public static string ImageSortReport = @"ImageSortReport.csv";
         public static void Main(string[] args)
         {
             //Figure out our base folder
@@ -80,6 +92,7 @@ namespace AppCatalogUtils
             appUpdateDir = Path.Combine(destBaseDir, AppUpdateSub);
             MetaReverseReport = Path.Combine(destBaseDir, MetaReverseReport);
             FileReverseReport = Path.Combine(destBaseDir, FileReverseReport);
+            ImageSortReport = Path.Combine(destBaseDir, ImageSortReport);
 
             //Ask the user what they want to do
             ShowMenu();
@@ -103,7 +116,8 @@ namespace AppCatalogUtils
             Console.WriteLine("5) Reverse catalog check from folder");
             Console.WriteLine("6) Scrape Wayback Machine for images to destination");
             Console.WriteLine("7) Scrape icons from web to destination");
-            Console.WriteLine("8) Generate catalog files from extant apps");
+            Console.WriteLine("8) Search folder for images in metadata");
+            Console.WriteLine("9) Generate catalog files from extant apps");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -182,14 +196,29 @@ namespace AppCatalogUtils
                         Console.WriteLine("Not implemented");
                         return true;
                     }
-                case ConsoleKey.D7: //Scrape AppPackages for Images
+                case ConsoleKey.D7: //Scrape Folder for Icons
                     {
                         Console.WriteLine();
                         Console.WriteLine();
                         GetAppIconsFromCatalog(appCatalog);
                         return true;
                     }
-                case ConsoleKey.D8: //Generate extant Catalog
+                case ConsoleKey.D8: //Search folder for Images
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        string searchFolder = Path.Combine(destBaseDir, "_AppImages");
+                        Console.WriteLine("Current Search Folder: " + searchFolder);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
+                            searchFolder = strInputPath;
+
+                        GetScreenShotsInFolderFromMetaData(searchFolder);
+                        return true;
+                    }
+                case ConsoleKey.D9: //Generate extant Catalog
                     {
                         Console.WriteLine();
                         Console.WriteLine();
@@ -494,11 +523,8 @@ namespace AppCatalogUtils
                     {
                         if (!TryGetImageFromPalmCDN(bigIconPath, iconSavePath))
                         {
-                            if (!TryGetImageFromWayBackMachine(bigIconPath, iconSavePath))
-                            {
-                                Console.WriteLine("Could not get big icon for " + appObj.id + " from any source");
-                                iconMissing = true;
-                            }
+                            Console.WriteLine("Could not get big icon for " + appObj.id + " from any source");
+                            iconMissing = true;
                         }
                         else
                             Console.WriteLine("Got big icon for:   " + appObj.id + "");
@@ -521,11 +547,8 @@ namespace AppCatalogUtils
                     {
                         if (!TryGetImageFromPalmCDN(bigIconPath, iconSavePath))
                         {
-                            if (!TryGetImageFromWayBackMachine(bigIconPath, iconSavePath))
-                            {
-                                Console.WriteLine("Could not get small icon for " + appObj.id + " from any source");
-                                iconMissing = true;
-                            }
+                            Console.WriteLine("Could not get small icon for " + appObj.id + " from any source");
+                            iconMissing = true;
                         }
                         else
                             Console.WriteLine("Got small icon for: " + appObj.id + "");
@@ -540,12 +563,126 @@ namespace AppCatalogUtils
             objWriter.Close();
         }
 
+        public static void GetScreenShotsInFolderFromMetaData(string searchFolder)
+        {
+            Console.WriteLine("Searching for app icons in " + searchFolder);
+            int i = 0;
+            //Setup report
+            System.IO.StreamWriter objWriter;
+            objWriter = new StreamWriter(ImageSortReport);
+
+            //Loop through all metadata files
+            string[] fileEntries = Directory.GetFiles(appMetaDir, "*.json");
+            int totalFound = 0;
+            int totalMissing = 0;
+            bool allFound = true;
+
+            foreach (string metaFile in fileEntries)
+            {
+                allFound = true;
+                int metaFileIndex = 0;
+                var metaFileIndexStr = Path.GetFileNameWithoutExtension(metaFile);
+                int.TryParse(metaFileIndexStr, out metaFileIndex);
+                int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
+                Console.CursorTop--;
+                Console.Write("Meta File: " + metaFileIndex.ToString() + " - ");
+
+                //Try multiple way to get the image list -- since the structure varies
+                List<ScreenshotDefinition> screenshotList = new List<ScreenshotDefinition>();
+                string myJsonString = File.ReadAllText(metaFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+                try
+                {
+                    JArray imagesSection = myJObject.SelectToken("images").Value<JArray>();
+                    if (imagesSection != null)
+                    {
+                        foreach (var child in imagesSection.Children<JObject>())
+                        {
+                            ScreenshotDefinition thisChild = child.ToObject<ScreenshotDefinition>();
+                            screenshotList.Add(thisChild);
+                        }
+                    }
+                }
+                catch(Exception ex)
+                {
+                    JObject imagesSection = myJObject.SelectToken("images").Value<JObject>();
+                    if (imagesSection != null)
+                    {
+                        foreach (var child in imagesSection.Children<JObject>())
+                        {
+                            ScreenshotDefinition thisChild = child.ToObject<ScreenshotDefinition>();
+                            screenshotList.Add(thisChild);
+                        }
+                    }
+                }
+
+                //For each image in the list, try to extract each type
+                foreach (var image in screenshotList)
+                {
+                    string screenshotPath = image.screenshot;
+                    if (screenshotPath != string.Empty)
+                    {
+                        //Find image file names
+                        string[] screenshotPathParts = screenshotPath.Split("/");
+                        string screenshotFile = screenshotPathParts[screenshotPathParts.Length - 1];
+
+                        if (!TrySortImageFromFolder(screenshotFile, screenshotPath, searchFolder))
+                        {
+                            //objWriter.Write(screenshotFile + ",");
+                            Console.WriteLine("Could not find screenshot: " + screenshotFile);
+                            totalMissing++;
+                            allFound = false;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Found screenshot:" + screenshotFile);
+                            totalFound++;
+                        }
+                    }
+
+                    string thumbnailPath = image.thumbnail;
+                    if (thumbnailPath != string.Empty)
+                    {
+                        //Find image file names
+                        string[] thumbnailPathParts = thumbnailPath.Split("/");
+                        string thumbnailFile = thumbnailPathParts[thumbnailPathParts.Length - 1];
+
+                        if (!TrySortImageFromFolder(thumbnailFile, thumbnailPath, searchFolder))
+                        {
+                            //objWriter.Write(thumbnailFile + ",");
+                            Console.WriteLine("Could not find thumbnail: " + thumbnailFile);
+                            totalMissing++;
+                            allFound = false;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Found thumbail:" + thumbnailFile);
+                            totalFound++;
+                        }
+                    }
+                }
+                
+                //Update output with findings
+                Console.WriteLine(percentDone.ToString() + "%      ");
+                if (!allFound)
+                    objWriter.WriteLine(metaFileIndexStr);
+                i++;
+            }
+            objWriter.Close();
+            Console.WriteLine();
+            Console.WriteLine("Total Meta Files:     " + fileEntries.Length.ToString());
+            Console.WriteLine("Total Images Matched: " + totalFound.ToString());
+            Console.WriteLine("Total Images Missing: " + totalMissing.ToString());
+            Console.WriteLine();
+            Console.WriteLine("Detailed report: " + ImageSortReport);
+        }
+
         public static bool TryGetImageFromPalmCDN(string getPath, string savePath)
         {
             string palmCDNPath = "http://cdn.downloads.palm.com/public/" + getPath;
             try
             {
-                using (System.Net.WebClient client = new WebClient())
+                using (WebClient client = new WebClient())
                 {
                     client.DownloadFile(new Uri(palmCDNPath), savePath);
                 }
@@ -557,11 +694,9 @@ namespace AppCatalogUtils
             return true;
         }
 
-        public static bool TryGetImageFromWayBackMachine(string getPath, string savePath)
+        public static bool TrySortImageFromFolder(string imageFile, string imagePath, string searchPath)
         {
-            //string palmCDNPath = "http://palm.com/" + getPath;
-            //download image from HTTP to savePath
-            //return true if it works, or...
+            //TODO: Actually test for image and sort it
             return false;
         }
 
