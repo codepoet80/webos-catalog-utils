@@ -56,6 +56,7 @@ namespace AppCatalogUtils
         public static string MetaReverseReport = @"MetaReverseReport.csv";
         public static string FileReverseReport = @"FileReverseReport.csv";
         public static string ImageSortReport = @"ImageSortReport.csv";
+
         public static void Main(string[] args)
         {
             //Figure out our base folder
@@ -568,27 +569,29 @@ namespace AppCatalogUtils
             Console.WriteLine("Searching for app icons in " + searchFolder);
             int i = 0;
             //Setup report
-            System.IO.StreamWriter objWriter;
+            StreamWriter objWriter;
             objWriter = new StreamWriter(ImageSortReport);
+            objWriter.WriteLine("Metafile,Thumbnails Found,Screenshots Found,Thumbnails Missing,Screenshots Missing");
 
             //Loop through all metadata files
             string[] fileEntries = Directory.GetFiles(appMetaDir, "*.json");
             int totalFound = 0;
             int totalMissing = 0;
-            bool allFound = true;
 
             foreach (string metaFile in fileEntries)
             {
-                allFound = true;
+                int thumbsFound = 0;
+                int thumbsMissing = 0;
+                int screensFound = 0;
+                int screensMissing = 0;
                 int metaFileIndex = 0;
                 var metaFileIndexStr = Path.GetFileNameWithoutExtension(metaFile);
                 int.TryParse(metaFileIndexStr, out metaFileIndex);
                 int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
-                Console.CursorTop--;
-                Console.Write("Meta File: " + metaFileIndex.ToString() + " - ");
-
-                //Try multiple way to get the image list -- since the structure varies
+                Console.Write("Meta File: " + metaFileIndex.ToString() + " - "  + percentDone.ToString() + "% ");
                 List<ScreenshotDefinition> screenshotList = new List<ScreenshotDefinition>();
+
+                //Try multiple ways to get the image list -- since the structure varies between documents
                 string myJsonString = File.ReadAllText(metaFile);
                 JObject myJObject = JObject.Parse(myJsonString);
                 try
@@ -608,13 +611,16 @@ namespace AppCatalogUtils
                     JObject imagesSection = myJObject.SelectToken("images").Value<JObject>();
                     if (imagesSection != null)
                     {
-                        foreach (var child in imagesSection.Children<JObject>())
+                        foreach (var c in imagesSection)
                         {
-                            ScreenshotDefinition thisChild = child.ToObject<ScreenshotDefinition>();
+                            JObject myChildObject = JObject.Parse(c.Value.ToString());
+                            ScreenshotDefinition thisChild = myChildObject.ToObject<ScreenshotDefinition>();
                             screenshotList.Add(thisChild);
                         }
                     }
                 }
+
+                Console.WriteLine("- " + (screenshotList.Count * 2).ToString() + " images");
 
                 //For each image in the list, try to extract each type
                 foreach (var image in screenshotList)
@@ -626,16 +632,16 @@ namespace AppCatalogUtils
                         string[] screenshotPathParts = screenshotPath.Split("/");
                         string screenshotFile = screenshotPathParts[screenshotPathParts.Length - 1];
 
-                        if (!TrySortImageFromFolder(screenshotFile, screenshotPath, searchFolder))
+                        if (!TrySortImageFromFolder(metaFileIndexStr, "L", screenshotFile, screenshotPath, searchFolder))
                         {
-                            //objWriter.Write(screenshotFile + ",");
-                            Console.WriteLine("Could not find screenshot: " + screenshotFile);
+                            Console.WriteLine("Not found");
                             totalMissing++;
-                            allFound = false;
+                            screensFound++;
                         }
                         else
                         {
-                            Console.WriteLine("Found screenshot:" + screenshotFile);
+                            Console.WriteLine("Found");
+                            screensMissing++;
                             totalFound++;
                         }
                     }
@@ -647,31 +653,29 @@ namespace AppCatalogUtils
                         string[] thumbnailPathParts = thumbnailPath.Split("/");
                         string thumbnailFile = thumbnailPathParts[thumbnailPathParts.Length - 1];
 
-                        if (!TrySortImageFromFolder(thumbnailFile, thumbnailPath, searchFolder))
+                        if (!TrySortImageFromFolder(metaFileIndexStr, "S", thumbnailFile, thumbnailPath, searchFolder))
                         {
-                            //objWriter.Write(thumbnailFile + ",");
-                            Console.WriteLine("Could not find thumbnail: " + thumbnailFile);
+                            Console.WriteLine("Not found");
                             totalMissing++;
-                            allFound = false;
+                            thumbsMissing++;
                         }
                         else
                         {
-                            Console.WriteLine("Found thumbail:" + thumbnailFile);
+                            Console.WriteLine("Found");
                             totalFound++;
+                            thumbsFound++;
                         }
                     }
                 }
                 
-                //Update output with findings
-                Console.WriteLine(percentDone.ToString() + "%      ");
-                if (!allFound)
-                    objWriter.WriteLine(metaFileIndexStr);
+                //Update report with findings
+                objWriter.WriteLine(metaFileIndexStr + "," + thumbsFound + "," + screensFound + "," + thumbsMissing + "," + screensMissing);
                 i++;
             }
             objWriter.Close();
             Console.WriteLine();
-            Console.WriteLine("Total Meta Files:     " + fileEntries.Length.ToString());
-            Console.WriteLine("Total Images Matched: " + totalFound.ToString());
+            Console.WriteLine("Total Meta Files:             " + fileEntries.Length.ToString());
+            Console.WriteLine("Total Images Found: " + totalFound.ToString());
             Console.WriteLine("Total Images Missing: " + totalMissing.ToString());
             Console.WriteLine();
             Console.WriteLine("Detailed report: " + ImageSortReport);
@@ -694,9 +698,21 @@ namespace AppCatalogUtils
             return true;
         }
 
-        public static bool TrySortImageFromFolder(string imageFile, string imagePath, string searchPath)
+        public static bool TrySortImageFromFolder(string appId, string imageSize, string imageFile, string imagePath, string searchPath)
         {
-            //TODO: Actually test for image and sort it
+            string searchImage = appId + "_" + imageSize + "_uri_" + imageFile;
+            imagePath = imagePath.Replace("/", "\\");
+            Console.Write("     Sorting " + searchImage + "...");
+            searchImage = Path.Combine(searchPath, searchImage);
+            if (File.Exists(searchImage))
+            {
+                imagePath = Path.Combine(appImageDir, imagePath);
+                string imageDir = imagePath.Replace(Path.GetFileName(imagePath), "");
+                if (!Directory.Exists(imageDir))
+                    Directory.CreateDirectory(imageDir);
+                File.Copy(searchImage, imagePath, true);
+                return true;
+            }
             return false;
         }
 
