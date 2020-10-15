@@ -119,7 +119,6 @@ namespace AppCatalogUtils
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search folder for images in metadata");
             Console.WriteLine("9) Generate catalog files from extant apps");
-            Console.WriteLine("T) Index text file against metadata");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -195,7 +194,7 @@ namespace AppCatalogUtils
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Not implemented");
+                        TryGetImageFromWaybackMachine("10/en/images/1/L/mainmenu_179B7C.png", destBaseDir);
                         return true;
                     }
                 case ConsoleKey.D7: //Scrape Folder for Icons
@@ -228,55 +227,6 @@ namespace AppCatalogUtils
                         Console.WriteLine("Catalog missing files to: " + destBaseDir);
                         Console.WriteLine();
                         GenerateExtantCatalog(appCatalog);
-                        return true;
-                    }
-                case ConsoleKey.T: //Index packages against text file
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
-                        string textFilePath = Path.Combine(destBaseDir, "allipk.txt");
-                        Console.WriteLine("Current File Path: " + textFilePath);
-                        Console.WriteLine("Enter alternate path, or press enter: ");
-                        string strInputPath = Console.ReadLine();
-                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
-                            textFilePath = strInputPath;
-
-                        Console.WriteLine("Indexing: " + textFilePath + " against: " + appMetaDir);
-                        IndexFromTextFile(appCatalog, textFilePath);
-                        return true;
-                    }
-                case ConsoleKey.R: //Build Request for Apps
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
-                        string textFilePath = Path.Combine(destBaseDir, "allipk.txt");
-                        string needList = Path.Combine(destBaseDir, "NeedListSimple.txt");
-                        Console.WriteLine("Current File Path: " + textFilePath);
-                        Console.WriteLine("Enter alternate path, or press enter: ");
-                        string strInputPath = Console.ReadLine();
-                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
-                            textFilePath = strInputPath;
-
-                        Console.WriteLine("Indexing: " + textFilePath + " against: " + appMetaDir);
-                        CreateAppRequestListFromResultsAgainstOriginal(needList, textFilePath);
-                        return true;
-                    }
-                case ConsoleKey.Y: //List Duplicates
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
-                        string textFilePath = Path.Combine(destBaseDir, "allipk.txt");
-                        Console.WriteLine("Current File Path: " + textFilePath);
-                        Console.WriteLine("Enter alternate path, or press enter: ");
-                        string strInputPath = Console.ReadLine();
-                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
-                            textFilePath = strInputPath;
-
-                        Console.WriteLine("Indexing: " + textFilePath + " for duplicates.");
-                        CreateListOfDuplicatesInFile(textFilePath);
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -391,233 +341,6 @@ namespace AppCatalogUtils
             Console.WriteLine("Apps Missing:  " + appsMissing);
             Console.WriteLine();
             Console.WriteLine("Detailed report: " + catalogIndexReport);
-        }
-
-        public static void IndexFromTextFile(List<AppDefinition> appCatalog, string textFilePath)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Indexing text file inventory against metadata...");
-            Console.WriteLine();
-
-            //Load pertitent parts of text file into memory for efficiency
-            Console.Write("Loading text file...");
-            List<string> appsInTextFile = new List<string>();
-            string appLine;
-            StreamReader txtFile = new StreamReader(textFilePath);
-            while ((appLine = txtFile.ReadLine()) != null)
-            {
-                //Strip out folder and catalog suffix
-                string[] lineParts = appLine.Split("/");
-                appLine = lineParts[lineParts.Length-1];
-                lineParts = appLine.Split("--");
-                appLine = lineParts[lineParts.Length-1];
-                appsInTextFile.Add(appLine);
-            }
-            txtFile.Close();
-            Console.WriteLine("Found " + appsInTextFile.Count + " apps.");
-            Console.WriteLine();
-
-            //Setup report
-            StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, "TextFile" + catalogIndexReport));
-            var headerLine = "AppID,Title,Category,FileName,Status,Filename";
-            objWriter.WriteLine(headerLine);
-            int i = 0;
-            int appsFound = 0;
-            int appsMissing = 0;
-            int appUpdates = 0;
-
-            //Loop through Catalog
-            foreach (var appObj in appCatalog)
-            {
-                i++;
-                int percentDone = (int)Math.Round((double)(100 * i) / appCatalog.Count);
-                Console.CursorTop--;
-                Console.Write("Searching Index #" + i.ToString() + " - " + percentDone.ToString() + "% Done - ");
-
-                //Figure out meta file name to check
-                var stripTitle = appObj.title.Replace(",", "");
-                var outputLine = appObj.id + "," + stripTitle + ",";
-                var checkFile = Path.Combine(appMetaDir, appObj.id + ".json");
-                Console.WriteLine(Path.GetFileName(checkFile) + "     ");
-
-                //Look to see if the app entry exists in the metadata folder
-                if (File.Exists(checkFile))
-                {
-                    //Load some metadata fields for the report
-                    outputLine = outputLine + appObj.category + ",";
-                    var myJsonString = File.ReadAllText(checkFile);
-                    var myJObject = JObject.Parse(myJsonString);
-                    var fileName = myJObject.SelectToken("filename").Value<string>();
-                    outputLine = outputLine + fileName + ",";
-
-                    //Look to see if the app package is listed in the text file
-                    if (appsInTextFile.Contains(fileName))
-                    {
-                        appsFound++;
-                        //Add findings to report
-                        outputLine = outputLine + "Found,";
-                    }
-                    else
-                    {
-                        //Add missing info to report
-                        appsMissing++;
-                        outputLine = outputLine + "Not Found";
-                    }
-                }
-                else
-                {
-                    //Add results to report
-                    outputLine = outputLine + "Unindexed";
-                }
-
-                objWriter.WriteLine(outputLine);
-            }
-            //Output final report
-            objWriter.Close();
-            Console.WriteLine();
-            Console.WriteLine("Index complete!");
-            Console.WriteLine("Apps Found:    " + appsFound);
-            Console.WriteLine("Updates Found: " + appUpdates);
-            Console.WriteLine("Apps Missing:  " + appsMissing);
-            Console.WriteLine();
-            Console.WriteLine("Detailed report: " + catalogIndexReport);
-        }
-
-        public static void CreateAppRequestListFromResultsAgainstOriginal(string requestFile, string originalTextFile)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Indexing text file inventory against request list...");
-            Console.WriteLine();
-
-            //Load pertitent parts of text file into memory for efficiency
-            Console.WriteLine("Loading text file.");
-            List<string> appsInTextFile = new List<string>();
-            string appLine;
-            StreamReader txtFile = new StreamReader(requestFile);
-            while ((appLine = txtFile.ReadLine()) != null)
-            {
-                //Strip out folder and catalog suffix
-                appsInTextFile.Add(appLine);
-            }
-            txtFile.Close();
-            Console.WriteLine("Building request for " + appsInTextFile.Count + " apps.");
-            Console.WriteLine();
-
-            //Setup report
-            StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, "RequestedApps.txt"));
-            int i = 0;
-            int appRequests = 0;
-
-            //Loop through Catalog
-            foreach (var app in appsInTextFile)
-            {
-                i++;
-                bool found = false;
-                StreamReader sourceFile = new StreamReader(originalTextFile);
-                while (!found && (appLine = sourceFile.ReadLine()) != null)
-                {
-                    if (appLine.IndexOf(app) != -1)
-                    {
-                        objWriter.WriteLine(appLine);
-                        appRequests++;
-                        found = true;
-                    }
-
-                }
-
-                int percentDone = (int)Math.Round((double)(100 * i) / appsInTextFile.Count);
-                Console.CursorTop--;
-                Console.WriteLine("Searching Index #" + i.ToString() + " - " + percentDone.ToString() + "% Done");
-            }
-            //Output final report
-            objWriter.Close();
-            Console.WriteLine();
-            Console.WriteLine("Index complete!");
-            Console.WriteLine("Apps Requested:    " + appRequests);
-            Console.WriteLine();
-            Console.WriteLine("Request report: " + Path.Combine(destBaseDir, "RequestedApps.txt"));
-        }
-
-        public static void CreateListOfDuplicatesInFile(string originalTextFile)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Indexing text file inventory against request list...");
-            Console.WriteLine();
-
-            //Load pertitent parts of text file into memory for efficiency
-            Console.WriteLine("Loading text file.");
-            List<string> appsInTextFile = new List<string>();
-            string appLine;
-            StreamReader txtFile = new StreamReader(originalTextFile);
-            while ((appLine = txtFile.ReadLine()) != null)
-            {
-                //Strip out folder and catalog suffix
-                appsInTextFile.Add(appLine);
-            }
-            txtFile.Close();
-            //Easier to read the file twice than copy Lists.
-            txtFile = new StreamReader(originalTextFile);
-            List<string> appsToCompare = new List<string>();
-            while ((appLine = txtFile.ReadLine()) != null)
-            {
-                //Strip out folder and catalog suffix
-                appsToCompare.Add(appLine);
-            }
-            txtFile.Close();
-
-            Console.WriteLine("Building duplicate list for " + appsInTextFile.Count + " apps.");
-            Console.WriteLine();
-
-            //Setup report
-            StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, "AppsYouCanDelete.txt"));
-            int i = 0;
-            int appDupes = 0;
-
-            //Loop through Catalog
-            foreach (var app in appsInTextFile)
-            {
-                i++;
-
-                //Strip out folder and catalog suffix
-                string[] lineParts = app.Split("/");
-                string thisAppName = lineParts[^1];
-                //lineParts = thisAppName.Split("--");
-                //thisAppName = lineParts[^1];
-
-                List<string> dupes = new List<string>();
-                foreach (var compareApp in appsToCompare)
-                {
-                    if (compareApp.IndexOf(thisAppName) != -1 && compareApp != app && thisAppName != "all.ipk")
-                    {
-                        dupes.Add(compareApp);
-                    }
-                }
-
-                appsToCompare.Remove(app);
-                if (dupes.Count > 0)
-                {
-                    objWriter.WriteLine(app);
-                    foreach (var dupeApp in dupes)
-                    {
-                        appsToCompare.Remove(dupeApp);
-                        objWriter.WriteLine("       " + dupeApp);
-                    }
-                }
-                appDupes += dupes.Count;
-                int percentDone = (int)Math.Round((double)(100 * i) / appsInTextFile.Count);
-                Console.CursorTop--;
-                Console.WriteLine("Searching Line #" + i.ToString() + " - " + percentDone.ToString() + "% Done. Duplicates: " + appDupes);
-            }
-            //Output final report
-            objWriter.Close();
-            Console.WriteLine();
-            Console.WriteLine("Search complete!");
-            Console.WriteLine("Duplicates Found:    " + appDupes);
-            Console.WriteLine();
-            Console.WriteLine("Request report: " + Path.Combine(destBaseDir, "AppsYouCanDelete.txt"));
         }
 
         public static void StripPrefixFromFilenames(string searchFolder)
@@ -916,10 +639,19 @@ namespace AppCatalogUtils
                             string savePath = Path.Combine(appImageDir, screenshotPath.Replace("/", "\\"));
                             if (!TryGetImageFromPalmCDN(screenshotPath, savePath))
                             {
-                                Console.WriteLine("Not found");
-                                missingImageList = missingImageList + "," + screenshotPath;
-                                totalMissing++;
-                                screensMissing++;
+                                if (!TryGetImageFromWaybackMachine(screenshotPath, savePath))
+                                {
+                                    Console.WriteLine("Not found");
+                                    missingImageList = missingImageList + "," + screenshotPath;
+                                    totalMissing++;
+                                    screensMissing++;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Found in Wayback");
+                                    totalFound++;
+                                    thumbsFound++;
+                                }
                             }
                             else
                             {
@@ -949,10 +681,19 @@ namespace AppCatalogUtils
                             string savePath = Path.Combine(appImageDir, thumbnailPath.Replace("/", "\\"));
                             if (!TryGetImageFromPalmCDN(thumbnailPath, savePath))
                             {
-                                Console.WriteLine("Not found");
-                                missingImageList = missingImageList + "," + screenshotPath;
-                                totalMissing++;
-                                thumbsMissing++;
+                                if (!TryGetImageFromWaybackMachine(thumbnailPath, savePath))
+                                {
+                                    Console.WriteLine("Not found");
+                                    missingImageList = missingImageList + "," + thumbnailPath;
+                                    totalMissing++;
+                                    screensMissing++;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Found in Wayback");
+                                    totalFound++;
+                                    thumbsFound++;
+                                }
                             }
                             else
                             {
@@ -991,6 +732,35 @@ namespace AppCatalogUtils
                 using (WebClient client = new WebClient())
                 {
                     client.DownloadFile(new Uri(palmCDNPath), savePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public static bool TryGetImageFromWaybackMachine(string getPath, string savePath)
+        {
+            string archiveResultPath = "http://web.archive.org/web/http://cdn.downloads.palm.com/public/" + getPath;
+            try
+            {
+                using (WebClient client = new WebClient())
+                {
+                    //Get the WayBack machine wrapper page for the content we want
+                    string WaybackResponse = client.DownloadString(new Uri(archiveResultPath));
+                    //Find the iframe that has the actual content we're interested in
+                    string[] ResponseParts = WaybackResponse.ToLower().Split("<iframe id=\"playback\"");
+                    string searchPart = ResponseParts[^1];
+                    ResponseParts = searchPart.Split("</iframe>");
+                    searchPart = ResponseParts[0];
+                    //Rip out the src of the iframe
+                    ResponseParts = searchPart.Split("src=\"");
+                    searchPart = ResponseParts[^1];
+                    ResponseParts = searchPart.Split("\"");
+                    searchPart = ResponseParts[0];
+                    client.DownloadFile(new Uri(searchPart), savePath);
                 }
             }
             catch (Exception ex)
