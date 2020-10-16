@@ -32,7 +32,7 @@ html {
 }
 
 .enyo-held {
-background: -webkit-gradient(linear, left top, left bottom, from(rgba(225,190,158,1)), to(rgba(241,99,33,0.8)));
+background: -webkit-gradient(linear, left top, left bottom, from(rgba(138,124,222,1)), to(rgba(52,29,189,0.8)));
 }
 
 .enyo-button.enyo-button-light.bookmarkButton .bookmarkInner {
@@ -59,7 +59,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(225,190,15
 }
 
 .palmOrange {
-	color: rgb(224,108,55);
+	color: rgb(52,29,189);
 }
 .palmAccent {
 	font-weight: bold;
@@ -469,7 +469,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(225,190,15
 .receivingDataBar {
 	height: 32px;
 	pointer-events: none;
-	background: -webkit-gradient(linear, left top, left bottom, from(rgba(225,190,158,1)), to(rgba(241,99,33,0.8)));
+	background: -webkit-gradient(linear, left top, left bottom, from(rgba(138,124,222,1)), to(rgba(52,29,189,0.8)));
 	overflow: hidden;
 	border-top: 1px solid #a9a9a9;
 	box-sizing: border-box;

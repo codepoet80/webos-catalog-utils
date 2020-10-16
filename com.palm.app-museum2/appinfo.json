@@ -4,7 +4,7 @@
 	"vendor": "codepoet80",
 	"type": "web",
 	"main": "index.html",
-	"title": "WebOS App Museum v2",
+	"title": "WebOS App Museum II",
 	"icon": "icon.png",
 	"splashicon": "icon-256x256.png",
 	"splashBackground":"images/splash-screenshot-default.png",

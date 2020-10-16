@@ -52,7 +52,7 @@ enyo.kind({
                                             {name: "appMaker", className: "appMakerDetail", flex:1},
                                             {kind: "IconButton",
                                              name: "fetchButton",
-                                             style: "background-color: rgb(224,108,55); color: white;",
+                                             style: "background-color: rgb(86,68,195); color: white;",
                                              icon: "images/fetchFromArchive.png",
                                              onclick: "handleFetch"
                                             }

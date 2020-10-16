@@ -35,7 +35,7 @@ enyo.kind({
                         {kind: "Image", src: "./images/WebOSAppMuseumLogo.png", width: "128px", height: "128px"},
                         {kind: "Spacer"}
                     ]},
-                    {content: "This app is an exhibition of applications originally available to the platform. The <span class='palmOrange'>Web</span><span class='palmAccent'>OS App Museum</span> does not host these apps itself, but relies on other community driven archival initiatives."},
+                    {content: "This app is an exhibition of applications originally available to the platform. The <span class='palmOrange'>Web</span><span class='palmAccent'>OS App Museum II</span> provides these apps under Fair Use provisions as digital archives for historical purposes through webOSArchive.com."},
                 ]},
                 {kind: "Control"},
                 {
