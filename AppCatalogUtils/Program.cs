@@ -115,9 +115,9 @@ namespace AppCatalogUtils
             Console.WriteLine("3) Reverse catalog check from metadata");
             Console.WriteLine("4) * Update catalog from metadata");
             Console.WriteLine("5) Reverse catalog check from folder");
-            Console.WriteLine("6) Scrape Wayback Machine for images to destination");
+            Console.WriteLine("6) * Unused");
             Console.WriteLine("7) Scrape icons from web to destination");
-            Console.WriteLine("8) Search folder for images in metadata");
+            Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Generate catalog files from extant apps");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
@@ -194,7 +194,7 @@ namespace AppCatalogUtils
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        TryGetImageFromWaybackMachine("1000010/icon/S/icon_1_0_0.png", "C:\\Users\\Jonathan Wise\\Projects\\webos-catalogutils\\AppImages\\1000010\\icon\\S\\icon_1_0_0.png");
+                        Console.WriteLine("Not Implemented");
                         return true;
                     }
                 case ConsoleKey.D7: //Scrape Folder for Icons
@@ -204,7 +204,7 @@ namespace AppCatalogUtils
                         GetAppIconsFromCatalog(appCatalog);
                         return true;
                     }
-                case ConsoleKey.D8: //Search folder for Images
+                case ConsoleKey.D8: //Search multiple sources for Images
                     {
                         Console.WriteLine();
                         Console.WriteLine();
@@ -216,7 +216,7 @@ namespace AppCatalogUtils
                         if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
                             searchFolder = strInputPath;
 
-                        GetScreenShotsInFolderFromMetaData(searchFolder);
+                        SearchForScreenshotsFromMetaData(searchFolder);
                         return true;
                     }
                 case ConsoleKey.D9: //Generate extant Catalog
@@ -564,8 +564,9 @@ namespace AppCatalogUtils
             objWriter.Close();
         }
 
-        public static void GetScreenShotsInFolderFromMetaData(string searchFolder)
+        public static void SearchForScreenshotsFromMetaData(string searchFolder)
         {
+
             Console.WriteLine("Searching for app icons in " + searchFolder);
             int i = 0;
             //Setup report
@@ -743,7 +744,6 @@ namespace AppCatalogUtils
                 else
                 {
                     Console.Write("ERROR: " + ex.Message);
-                    Console.ReadLine();
                     return false;
                 }
             }
@@ -781,7 +781,6 @@ namespace AppCatalogUtils
                 else
                 {
                     Console.Write("ERROR: " + ex.Message);
-                    Console.ReadLine();
                     return false;
                 }
             }
