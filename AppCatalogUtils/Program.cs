@@ -194,7 +194,7 @@ namespace AppCatalogUtils
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        TryGetImageFromWaybackMachine("10/en/images/1/L/mainmenu_179B7C.png", destBaseDir);
+                        TryGetImageFromWaybackMachine("1000010/icon/S/icon_1_0_0.png", "C:\\Users\\Jonathan Wise\\Projects\\webos-catalogutils\\AppImages\\1000010\\icon\\S\\icon_1_0_0.png");
                         return true;
                     }
                 case ConsoleKey.D7: //Scrape Folder for Icons
@@ -677,7 +677,7 @@ namespace AppCatalogUtils
 
                         if (!TrySortImageFromFolder(metaFileIndexStr, "S", thumbnailFile, thumbnailPath, searchFolder))
                         {
-                            //Fall back to Palm CDN... TODO: then Wayback?
+                            //Fall back to Palm CDN...
                             string savePath = Path.Combine(appImageDir, thumbnailPath.Replace("/", "\\"));
                             if (!TryGetImageFromPalmCDN(thumbnailPath, savePath))
                             {
@@ -729,6 +729,8 @@ namespace AppCatalogUtils
             string palmCDNPath = "http://cdn.downloads.palm.com/public/" + getPath;
             try
             {
+                if (!Directory.Exists(Path.GetDirectoryName(savePath)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(savePath));
                 using (WebClient client = new WebClient())
                 {
                     client.DownloadFile(new Uri(palmCDNPath), savePath);
@@ -736,7 +738,14 @@ namespace AppCatalogUtils
             }
             catch (Exception ex)
             {
-                return false;
+                if (ex.Message.Contains("404"))
+                    return false;
+                else
+                {
+                    Console.Write("ERROR: " + ex.Message);
+                    Console.ReadLine();
+                    return false;
+                }
             }
             return true;
         }
@@ -746,6 +755,8 @@ namespace AppCatalogUtils
             string archiveResultPath = "http://web.archive.org/web/http://cdn.downloads.palm.com/public/" + getPath;
             try
             {
+                if (!Directory.Exists(Path.GetDirectoryName(savePath)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(savePath));
                 using (WebClient client = new WebClient())
                 {
                     //Get the WayBack machine wrapper page for the content we want
@@ -765,7 +776,14 @@ namespace AppCatalogUtils
             }
             catch (Exception ex)
             {
-                return false;
+                if (ex.Message.Contains("404"))
+                    return false;
+                else
+                {
+                    Console.Write("ERROR: " + ex.Message);
+                    Console.ReadLine();
+                    return false;
+                }
             }
             return true;
         }
