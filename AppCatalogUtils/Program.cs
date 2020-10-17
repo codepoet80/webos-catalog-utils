@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 
@@ -39,6 +40,18 @@ namespace AppCatalogUtils
             public string device;
         }
 
+        public class AppVersionDefinition
+        {
+            public string packageName;
+            public string publisherPrefix;
+            public string appNameSuffix;
+            public string appNameModifier;
+            public int majorVersion;
+            public int minorVersion;
+            public int buildVersion;
+            public string platform;
+        }
+
         public static string catalogFile;
         public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\");
         public static string fileDir = @"D:\webOS";
@@ -51,11 +64,14 @@ namespace AppCatalogUtils
         public static string appImageDir;
         const string AppUpdateSub = "AppUpdates";
         public static string appUpdateDir;
+        const string AppUnknownSub = "AppUnknown";
+        public static string appUnknownDir;
 
         public static string catalogIndexReport = @"CatalogIndexResults.csv";
         public static string MetaReverseReport = @"MetaReverseReport.csv";
         public static string FileReverseReport = @"FileReverseReport.csv";
         public static string ImageSortReport = @"ImageSortReport.csv";
+        public static string MissingPackageInfoReport = @"MissingPackageInfo.csv";
 
         public static void Main(string[] args)
         {
@@ -82,7 +98,7 @@ namespace AppCatalogUtils
             if (strInputFile.Length > 1 && File.Exists(strInputFile))
                 catalogFile = strInputFile;
             Console.WriteLine("Reading Catalog index from: " + catalogFile);
-            List<AppDefinition> appCatalog = Newtonsoft.Json.JsonConvert.DeserializeObject<List<AppDefinition>>(File.ReadAllText(catalogFile));
+            List<AppDefinition> appCatalog = ReadCatalogFile(catalogFile);
             Console.WriteLine("Apps in catalog:" + appCatalog.Count.ToString());
             Console.WriteLine();
             
@@ -91,9 +107,11 @@ namespace AppCatalogUtils
             appMetaDir = Path.Combine(destBaseDir, AppMetaSub);
             appImageDir = Path.Combine(destBaseDir, AppImageSub);
             appUpdateDir = Path.Combine(destBaseDir, AppUpdateSub);
+            appUnknownDir = Path.Combine(destBaseDir, AppUnknownSub);
             MetaReverseReport = Path.Combine(destBaseDir, MetaReverseReport);
             FileReverseReport = Path.Combine(destBaseDir, FileReverseReport);
             ImageSortReport = Path.Combine(destBaseDir, ImageSortReport);
+            MissingPackageInfoReport = Path.Combine(destBaseDir, MissingPackageInfoReport);
 
             //Ask the user what they want to do
             ShowMenu();
@@ -115,10 +133,10 @@ namespace AppCatalogUtils
             Console.WriteLine("3) Reverse catalog check from metadata");
             Console.WriteLine("4) * Update catalog from metadata");
             Console.WriteLine("5) Reverse catalog check from folder");
-            Console.WriteLine("6) * Unused");
+            Console.WriteLine("6) Generate catalog files from extant apps");
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
-            Console.WriteLine("9) Generate catalog files from extant apps");
+            Console.WriteLine("9) Build missing package with possible match report from folder");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -190,11 +208,14 @@ namespace AppCatalogUtils
                         ReverseCatalogFromFolder(searchFolder);
                         return true;
                     }
-                case ConsoleKey.D6: //Scrape Wayback Machine for Images
+                case ConsoleKey.D6: //Generate extant Catalog
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Not Implemented");
+                        Console.WriteLine("Catalog extant files to: " + destBaseDir);
+                        Console.WriteLine("Catalog missing files to: " + destBaseDir);
+                        Console.WriteLine();
+                        GenerateExtantCatalog(appCatalog);
                         return true;
                     }
                 case ConsoleKey.D7: //Scrape Folder for Icons
@@ -219,14 +240,20 @@ namespace AppCatalogUtils
                         SearchForScreenshotsFromMetaData(searchFolder);
                         return true;
                     }
-                case ConsoleKey.D9: //Generate extant Catalog
+                case ConsoleKey.D9: //Build missing app info report
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Catalog extant files to: " + destBaseDir);
-                        Console.WriteLine("Catalog missing files to: " + destBaseDir);
-                        Console.WriteLine();
-                        GenerateExtantCatalog(appCatalog);
+                        string missingMasterDataFile = catalogFile.Replace("master", "Missing");
+
+                        string searchFolder = appUnknownDir;
+                        Console.WriteLine("Current Search Folder: " + searchFolder);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
+                            searchFolder = strInputPath;
+
+                        BuildMissingPackageInfoReport(missingMasterDataFile, searchFolder);
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -493,6 +520,55 @@ namespace AppCatalogUtils
             Console.WriteLine("Total Missing in Catalog: " + totalMissing);
             Console.WriteLine();
             Console.WriteLine("Missing Item report: " + FileReverseReport);
+        }
+
+        public static void BuildMissingPackageInfoReport(string missingAppDataFile, string folderToSeachForPossibleMatches)
+        {
+            List<AppDefinition> missingAppCatalog = ReadCatalogFile(missingAppDataFile);
+            //loop through catalog
+            Console.WriteLine("Collecting details for missing apps and searching possible matches...");
+            Console.WriteLine();
+            int i = 0;
+            int appsWithPossibleMatch = 0;
+            StreamWriter objWriter;
+            objWriter = new StreamWriter(MissingPackageInfoReport);
+            objWriter.WriteLine("App Name, App Package, Possible Matches");
+            foreach (var appObj in missingAppCatalog)
+            {
+                i++;
+                int percentDone = (int)Math.Round((double)(100 * i) / missingAppCatalog.Count);
+                Console.CursorTop--;
+                Console.WriteLine("Reading Index #" + i.ToString() + " - " + percentDone.ToString() + "% Done");
+
+                string newLine = appObj.title + ",";
+                //Figure out meta file name to check
+                var checkFile = Path.Combine(appMetaDir, appObj.id + ".json");
+                objWriter.Write(appObj.title.Replace(",","") + ",");
+
+                //Look to see if the app entry exists in the metadata folder
+                if (File.Exists(checkFile))
+                {
+                    //open json
+                    var myJsonString = File.ReadAllText(checkFile);
+                    var myJObject = JObject.Parse(myJsonString);
+                    var fileName = myJObject.SelectToken("filename").Value<string>();
+                    objWriter.Write(fileName + ",");
+                    List<string> possibleMatches = FindPossibleMatchesInFolder(fileName, folderToSeachForPossibleMatches);
+                    if (possibleMatches.Count > 0)
+                        appsWithPossibleMatch++;
+                    foreach (string possibleMatch in possibleMatches)
+                    {
+                        objWriter.Write(possibleMatch + ",");
+                    }
+                }
+                objWriter.WriteLine();
+            }
+            objWriter.Close();
+            Console.WriteLine();
+            Console.WriteLine("Missing Packages: " + missingAppCatalog.Count);
+            Console.WriteLine("Possible Matches: " + appsWithPossibleMatch);
+            Console.WriteLine();
+            Console.WriteLine("Missing package list: " + MissingPackageInfoReport);
         }
 
         public static void GetAppIconsFromCatalog(List<AppDefinition> appCatalog)
@@ -844,6 +920,113 @@ namespace AppCatalogUtils
             }
             WriteCatalogFile("Extant", extantAppCatalog);
             WriteCatalogFile("Missing", missingAppCatalog);
+        }
+
+        public static List<string> FindPossibleMatchesInFolder(string fileName, string searchFolder)
+        {
+            List<string> possibleMatches = new List<string>();
+
+            AppVersionDefinition thisApp = ExtractAppVersionDefinition(fileName);
+
+            foreach (var checkFileName in Directory.GetFiles(searchFolder))
+            {
+                bool added = false;
+                AppVersionDefinition checkApp = ExtractAppVersionDefinition(checkFileName);
+                if (thisApp.publisherPrefix != null && thisApp.publisherPrefix != "" && thisApp.publisherPrefix == checkApp.publisherPrefix)
+                {
+                    if (!added)
+                    {
+                        possibleMatches.Add(Path.GetFileName(checkFileName));
+                        added = true;
+                    }
+                    
+                }
+                if (thisApp.appNameSuffix != null && thisApp.appNameSuffix != "" && thisApp.appNameSuffix == checkApp.appNameSuffix)
+                {
+                    if (!added)
+                    {
+                        possibleMatches.Add(Path.GetFileName(checkFileName));
+                        added = true;
+                    }
+                }
+                /* Faulty search
+                if (thisApp.appNameSuffix.Contains(checkApp.appNameSuffix) || checkApp.appNameSuffix.Contains(thisApp.appNameSuffix))
+                {
+                    if (!added)
+                    {
+                        possibleMatches.Add(Path.GetFileName(checkFileName));
+                        added = true;
+                    }
+                }
+                */
+            }
+            return possibleMatches;
+        }
+
+        public static AppVersionDefinition ExtractAppVersionDefinition(string fileName)
+        {
+            fileName = fileName.ToLower();
+            AppVersionDefinition thisApp = new AppVersionDefinition();
+            string[] fileNameParts = fileName.Split("_");
+            thisApp.packageName = fileNameParts[0];
+            string versionNumber;
+            if (fileNameParts.Length > 2)
+            {
+                versionNumber = fileNameParts[1];
+                if (versionNumber != String.Empty)
+                {
+                    string[] versionNumberParts = versionNumber.Split(".");
+                    int.TryParse(versionNumberParts[0], out thisApp.majorVersion);
+                    if (versionNumberParts.Length > 1)
+                        int.TryParse(versionNumberParts[1], out thisApp.minorVersion);
+                    if (versionNumberParts.Length > 2)
+                        int.TryParse(versionNumberParts[2], out thisApp.buildVersion);
+                }
+                thisApp.platform = fileNameParts[^1].Replace(".ipk", "");
+            }
+            string[] packageNameParts = thisApp.packageName.Split(".");
+            
+            //Rule out common app name modifiers
+            int actualAppNamePos = packageNameParts.Length-1;
+            List<string> commonAppModifiers = GetCommonAppNameModifiers();
+            for (var i=packageNameParts.Length-1; i > 0; i--)
+            {
+                if (commonAppModifiers.Contains(packageNameParts[i]))
+                {
+                    thisApp.appNameModifier = packageNameParts[i];
+                    if (i > 0)
+                    {
+                        actualAppNamePos = i - 1;
+                    }
+                }
+            }
+            thisApp.appNameSuffix = packageNameParts[actualAppNamePos];
+            for (var i=0; i < actualAppNamePos; i++)
+            {
+                thisApp.publisherPrefix += packageNameParts[i] + ".";
+            }
+            if (thisApp.publisherPrefix != null)
+                thisApp.publisherPrefix = thisApp.publisherPrefix.Substring(0, thisApp.publisherPrefix.Length - 1);
+            if (thisApp.appNameModifier != null && thisApp.appNameModifier != "")
+            {
+                Debug.Print("found one");
+            }
+            return thisApp;
+        }
+
+        public static List<string> GetCommonAppNameModifiers()
+        {
+            List<string> commonModifiers = new List<string>();
+            commonModifiers.Add("hd");
+            commonModifiers.Add("pro");
+            commonModifiers.Add("lite");
+            commonModifiers.Add("free");
+            return commonModifiers;
+        }
+
+        public static List<AppDefinition> ReadCatalogFile(string catalogFileName)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<AppDefinition>>(File.ReadAllText(catalogFileName));
         }
 
         public static void WriteCatalogFile(string catalogName, List<AppDefinition> newAppCatalog)
