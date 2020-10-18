@@ -6,51 +6,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 
-namespace AppCatalogUtils
+namespace webOS.AppCatalog
 {
     class Program
     {
         #region Environment and UI
-        [JsonObject]
-        public class AppDefinition
-        {
-            public int id;
-            public string title;
-            public string author;
-            public string summary;
-            public string appIcon;
-            public string appIconBig;
-            public string category;
-            public string vendorId;
-            public bool Pixi;
-            public bool Pre;
-            public bool Pre2;
-            public bool Pre3;
-            public bool Veer;
-            public bool TouchPad;
-            public bool touchpad_exclusive;
-        }
-
-        [JsonObject]
-        public class ScreenshotDefinition
-        {
-            public string screenshot;
-            public string thumbnail;
-            public string orientation;
-            public string device;
-        }
-
-        public class AppVersionDefinition
-        {
-            public string packageName;
-            public string publisherPrefix;
-            public string appNameSuffix;
-            public string appNameModifier;
-            public int majorVersion;
-            public int minorVersion;
-            public int buildVersion;
-            public string platform;
-        }
 
         public static string catalogFile;
         public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
@@ -66,11 +26,14 @@ namespace AppCatalogUtils
         public static string appUpdateDir;
         const string AppUnknownSub = "AppUnknown";
         public static string appUnknownDir;
+        const string ReportsSub = "Reports";
+        public static string reportsDir;
 
         public static string catalogIndexReport = @"CatalogIndexResults.csv";
         public static string MetaReverseReport = @"MetaReverseReport.csv";
         public static string FileReverseReport = @"FileReverseReport.csv";
         public static string ImageSortReport = @"ImageSortReport.csv";
+        public static string MissingIconReport = @"MissingIcons.csv";
         public static string MissingPackageInfoReport = @"MissingPackageInfo.csv";
 
         public static void Main(string[] args)
@@ -108,10 +71,12 @@ namespace AppCatalogUtils
             appImageDir = Path.Combine(destBaseDir, AppImageSub);
             appUpdateDir = Path.Combine(destBaseDir, AppUpdateSub);
             appUnknownDir = Path.Combine(destBaseDir, AppUnknownSub);
-            MetaReverseReport = Path.Combine(destBaseDir, MetaReverseReport);
-            FileReverseReport = Path.Combine(destBaseDir, FileReverseReport);
-            ImageSortReport = Path.Combine(destBaseDir, ImageSortReport);
-            MissingPackageInfoReport = Path.Combine(destBaseDir, MissingPackageInfoReport);
+            reportsDir = Path.Combine(destBaseDir, ReportsSub);
+            MetaReverseReport = Path.Combine(reportsDir, MetaReverseReport);
+            FileReverseReport = Path.Combine(reportsDir, FileReverseReport);
+            ImageSortReport = Path.Combine(reportsDir, ImageSortReport);
+            MissingIconReport = Path.Combine(reportsDir, MissingIconReport);
+            MissingPackageInfoReport = Path.Combine(reportsDir, MissingPackageInfoReport);
 
             //Ask the user what they want to do
             ShowMenu();
@@ -576,7 +541,7 @@ namespace AppCatalogUtils
             Console.WriteLine("Searching for app icons on the web...");
             int i = 0;
             StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, "missingIcons.csv"));
+            objWriter = new StreamWriter(MissingIconReport);
             foreach (var appObj in appCatalog)
             {
                 i++;
