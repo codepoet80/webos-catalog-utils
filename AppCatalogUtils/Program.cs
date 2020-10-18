@@ -1021,6 +1021,9 @@ namespace AppCatalogUtils
             commonModifiers.Add("pro");
             commonModifiers.Add("lite");
             commonModifiers.Add("free");
+            commonModifiers.Add("webos");
+            commonModifiers.Add("app");
+            commonModifiers.Add("touchpad");
             return commonModifiers;
         }
 
