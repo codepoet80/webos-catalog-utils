@@ -9,6 +9,14 @@
 *.user
 *.userosscache
 *.sln.docstates
+.DS_Store
+
+#Catalog contents that should come from an archive not a code repo
+*.ipk
+*.png
+*.jpg
+*.jpeg
+*.gif
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
