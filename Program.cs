@@ -13,7 +13,7 @@ namespace webOS.AppCatalog
         #region Environment and UI
 
         public static string catalogFile;
-        public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
+        public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\_webOSAppCatalog");
         public static string fileDir = @"D:\webOS";
 
         const string AppPackageSub = "AppPackages";
