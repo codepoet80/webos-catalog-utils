@@ -13,21 +13,18 @@ namespace webOS.AppCatalog
         #region Environment and UI
 
         public static string catalogFile;
-        public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\_webOSAppCatalog");
+        public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
+        public static string appcatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");
+        
         public static string fileDir = @"D:\webOS";
 
-        const string AppPackageSub = "AppPackages";
-        public static string appPackageDir;
-        const string AppMetaSub = "AppMetaData";
-        public static string appMetaDir;
-        const string AppImageSub = "AppImages";
-        public static string appImageDir;
-        const string AppUpdateSub = "AppUpdates";
-        public static string appUpdateDir;
-        const string AppUnknownSub = "AppUnknown";
-        public static string appUnknownDir;
-        const string ReportsSub = "Reports";
-        public static string reportsDir;
+        public static string appPackageDir = "AppPackages";
+        public static string appMetaDir = "AppMetaData";
+        public static string appImageDir = "AppImages";
+        public static string appUpdateDir = "AppUpdates";
+        public static string appUnknownDir = "AppUnknown";
+        public static string appAlternateDir = "AppAlternates";
+        public static string reportsDir = "Reports";
 
         public static string catalogIndexReport = @"CatalogIndexResults.csv";
         public static string MetaReverseReport = @"MetaReverseReport.csv";
@@ -39,22 +36,22 @@ namespace webOS.AppCatalog
         public static void Main(string[] args)
         {
             //Figure out our base folder
-            destBaseDir = Path.GetFullPath(destBaseDir);
-            Console.WriteLine("Current Destination Folder Base: " + destBaseDir);
+            appcatalogDir = Path.GetFullPath(appcatalogDir);
+            Console.WriteLine("Current Destination Folder Base: " + appcatalogDir);
             Console.Write("Enter alternate path, or press enter: ");
             string strInputDir = Console.ReadLine();
             if (strInputDir.Length > 1)
-                destBaseDir = strInputDir;
-            Console.WriteLine("Using: " + destBaseDir);
-            if (!Directory.Exists(destBaseDir))
+                appcatalogDir = strInputDir;
+            Console.WriteLine("Using: " + appcatalogDir);
+            if (!Directory.Exists(appcatalogDir))
             {
                 Console.WriteLine("Warning: Destination folder not found, will attempt to create!");
-                Directory.CreateDirectory(destBaseDir);
+                Directory.CreateDirectory(appcatalogDir);
             }
             Console.WriteLine();
 
             //Read Master App Data (aka the Catalog) into memory
-            catalogFile = Path.Combine(destBaseDir, "masterAppData.json");
+            catalogFile = Path.Combine(appcatalogDir, "masterAppData.json");
             Console.WriteLine("Current Catalog File: " + catalogFile);
             Console.WriteLine("Enter alternate path, or press enter: ");
             string strInputFile = Console.ReadLine();
@@ -64,14 +61,17 @@ namespace webOS.AppCatalog
             List<AppDefinition> appCatalog = ReadCatalogFile(catalogFile);
             Console.WriteLine("Apps in catalog:" + appCatalog.Count.ToString());
             Console.WriteLine();
-            
-            //Figure out other folders
-            appPackageDir = Path.Combine(destBaseDir, AppPackageSub);
-            appMetaDir = Path.Combine(destBaseDir, AppMetaSub);
-            appImageDir = Path.Combine(destBaseDir, AppImageSub);
-            appUpdateDir = Path.Combine(destBaseDir, AppUpdateSub);
-            appUnknownDir = Path.Combine(destBaseDir, AppUnknownSub);
-            reportsDir = Path.Combine(destBaseDir, ReportsSub);
+
+            //Figure out folders
+            appPackageDir = Path.Combine(appcatalogDir, appPackageDir);
+            appMetaDir = Path.Combine(appcatalogDir, appMetaDir);
+            appImageDir = Path.Combine(appcatalogDir, appImageDir);
+            appUpdateDir = Path.Combine(appcatalogDir, appUpdateDir);
+            appUnknownDir = Path.Combine(appcatalogDir, appUnknownDir);
+            appAlternateDir = Path.Combine(appcatalogDir, appUnknownDir);
+
+            //Figure out report paths
+            reportsDir = Path.Combine(workingDir, reportsDir);
             MetaReverseReport = Path.Combine(reportsDir, MetaReverseReport);
             FileReverseReport = Path.Combine(reportsDir, FileReverseReport);
             ImageSortReport = Path.Combine(reportsDir, ImageSortReport);
@@ -177,8 +177,8 @@ namespace webOS.AppCatalog
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Catalog extant files to: " + destBaseDir);
-                        Console.WriteLine("Catalog missing files to: " + destBaseDir);
+                        Console.WriteLine("Catalog extant files to: " + appcatalogDir);
+                        Console.WriteLine("Catalog missing files to: " + appcatalogDir);
                         Console.WriteLine();
                         GenerateExtantCatalog(appCatalog);
                         return true;
@@ -195,7 +195,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        string searchFolder = Path.Combine(destBaseDir, "_AppImages");
+                        string searchFolder = Path.Combine(appcatalogDir, "_AppImages");
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
                         string strInputPath = Console.ReadLine();
@@ -247,7 +247,7 @@ namespace webOS.AppCatalog
 
             //Setup report
             System.IO.StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, catalogIndexReport));
+            objWriter = new StreamWriter(Path.Combine(appcatalogDir, catalogIndexReport));
             var headerLine = "AppID,Title,Category,FileName,Status,Filename";
             objWriter.WriteLine(headerLine);
             int i = 0;
@@ -284,7 +284,7 @@ namespace webOS.AppCatalog
                     {
                         appsFound++;
                         //Copy to new home
-                        var newHome = Path.Combine(destBaseDir, appPackageDir, fileName);
+                        var newHome = Path.Combine(appcatalogDir, appPackageDir, fileName);
                         if (searchFolder != appPackageDir)
                             File.Move(Path.Combine(searchFolder, fileName), newHome, true);
 
@@ -1002,7 +1002,7 @@ namespace webOS.AppCatalog
             Console.WriteLine(catalogName + " app catalog count: " + newAppCatalog.Count);
             string newAppCatJson = Newtonsoft.Json.JsonConvert.SerializeObject(newAppCatalog);
             StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(destBaseDir, catalogName + "AppData.json"));
+            objWriter = new StreamWriter(Path.Combine(appcatalogDir, catalogName + "AppData.json"));
             objWriter.WriteLine(newAppCatJson);
             objWriter.Close();
         }
