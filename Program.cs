@@ -53,7 +53,7 @@ namespace AppCatalogUtils
         }
 
         public static string catalogFile;
-        public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\..\\");
+        public static string destBaseDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
         public static string fileDir = @"D:\webOS";
 
         const string AppPackageSub = "AppPackages";
