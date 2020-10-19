@@ -12,12 +12,11 @@ namespace webOS.AppCatalog
     {
         #region Environment and UI
 
-        public static string catalogFile;
         public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
         public static string appcatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");
-        
-        public static string fileDir = @"D:\webOS";
+        public static string catalogFile;
 
+        public static string incomingDir = "Incoming";
         public static string appPackageDir = "AppPackages";
         public static string appMetaDir = "AppMetaData";
         public static string appImageDir = "AppImages";
@@ -63,6 +62,7 @@ namespace webOS.AppCatalog
             Console.WriteLine();
 
             //Figure out folders
+            incomingDir = Path.Combine(appcatalogDir, incomingDir);
             appPackageDir = Path.Combine(appcatalogDir, appPackageDir);
             appMetaDir = Path.Combine(appcatalogDir, appMetaDir);
             appImageDir = Path.Combine(appcatalogDir, appImageDir);
@@ -117,7 +117,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        string searchFolder = fileDir;
+                        string searchFolder = incomingDir;
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
                         string strInputPath = Console.ReadLine();
@@ -133,7 +133,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        string searchFolder = fileDir;
+                        string searchFolder = incomingDir;
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
                         string strInputPath = Console.ReadLine();
@@ -230,7 +230,7 @@ namespace webOS.AppCatalog
                     }
                 default:
                     {
-                        Console.CursorTop = Console.CursorTop - 16;
+                        Console.CursorTop -= 16;
                         return true;
                     }
             }
