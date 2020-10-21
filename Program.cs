@@ -96,12 +96,13 @@ namespace webOS.AppCatalog
             Console.WriteLine("1) Index packages in folder to destination");
             Console.WriteLine("2) Strip leading catalog numbers in folder to subfolder");
             Console.WriteLine("3) Reverse catalog check from metadata");
-            Console.WriteLine("4) * Update catalog from metadata");
+            Console.WriteLine("4) Update Metadata JSON");
             Console.WriteLine("5) Reverse catalog check from folder");
             Console.WriteLine("6) Generate catalog files from extant apps");
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Build missing package with possible match report from folder");
+            Console.WriteLine("N) Find next available catalog number");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -154,7 +155,8 @@ namespace webOS.AppCatalog
                 case ConsoleKey.D4: //Update catalog from metadata
                     {
                         Console.WriteLine();
-                        Console.WriteLine("Not Implemented");
+                        Console.WriteLine();
+                        UpdateMetaFileJSONStructure();
                         return true;
                     }
                 case ConsoleKey.D5: //Reverse check catalog from folder
@@ -219,6 +221,14 @@ namespace webOS.AppCatalog
                             searchFolder = strInputPath;
 
                         BuildMissingPackageInfoReport(missingMasterDataFile, searchFolder);
+                        return true;
+                    }
+                case ConsoleKey.N:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        FindNextAvailCatalogNum();
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -534,6 +544,63 @@ namespace webOS.AppCatalog
             Console.WriteLine("Possible Matches: " + appsWithPossibleMatch);
             Console.WriteLine();
             Console.WriteLine("Missing package list: " + MissingPackageInfoReport);
+        }
+
+        public static void UpdateMetaFileJSONStructure()
+        {
+            //Check each metadata file to make sure its in the catalog file
+            Console.WriteLine();
+            Console.WriteLine("Updating metafile structure...");
+            Console.WriteLine();
+
+            var outputDir = Path.Combine(appMetaDir.Replace("AppMetaData", "AppMetaDataNew"));
+            if (!Directory.Exists(outputDir))
+            {
+                Directory.CreateDirectory(outputDir);
+            }
+
+            //Loop through all metadata files
+            string[] fileEntries = Directory.GetFiles(appMetaDir, "*.json");
+            int i = 0;
+            foreach (string metaFile in fileEntries)
+            {
+                string myJsonString = File.ReadAllText(metaFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+                try
+                {
+                    string ipkFilename = myJObject.SelectToken("filename").Value<String>();
+                    myJObject.Add("originalFileName", ipkFilename);
+                    StreamWriter newJsonWriter = new StreamWriter(Path.Combine(outputDir, Path.GetFileName(metaFile)));
+                    newJsonWriter.WriteLine(myJObject.ToString());
+                    newJsonWriter.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex.Message);
+                    Console.ReadLine();
+                }
+
+                var metaFileIndexStr = Path.GetFileNameWithoutExtension(metaFile);
+                int.TryParse(metaFileIndexStr, out int metaFileIndex);
+                
+                Console.CursorTop--;
+                Console.Write("Meta File: " + metaFileIndex.ToString() + " - ");
+
+                //Update output with findings
+                int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
+                Console.WriteLine(percentDone.ToString() + "%          ");
+                i++;
+            }
+            //Finalize report
+            Console.WriteLine();
+            Console.WriteLine("Total JSON files converted: " + i.ToString());
+            Console.WriteLine();
+        }
+
+        public static void FindNextAvailCatalogNum()
+        {
+            Console.WriteLine("not werkin yet");
+            return;
         }
 
         public static void GetAppIconsFromCatalog(List<AppDefinition> appCatalog)
