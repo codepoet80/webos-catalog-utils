@@ -605,10 +605,11 @@ namespace webOS.AppCatalog
                 if (appObj.id > highestIndexNum)
                     highestIndexNum = appObj.id;
             }
-            Console.WriteLine("Highest index number found:  " + highestIndexNum);
-            Console.WriteLine("Suggested next index number: " + (highestIndexNum + 1));
+            highestIndexNum++;
+            Console.WriteLine("Highest index number found:  " + (highestIndexNum-1));
+            Console.WriteLine("Suggested next index number: " + highestIndexNum);
             Console.WriteLine();
-            Console.Write("Stub in new app to extant and master AppData files? ");
+            Console.Write("Stub in new app to extant, master and metadata files? ");
             ConsoleKeyInfo choice = Console.ReadKey();
             switch (choice.Key)
             {
@@ -619,7 +620,14 @@ namespace webOS.AppCatalog
                 case ConsoleKey.Y:
                     {
                         Console.WriteLine();
+                        string newName = "";
+                        Console.WriteLine("Name of the new app: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1)
+                            newName = strInputPath;
                         Console.WriteLine();
+
+                        //Read in extant catalog
                         catalogFile = Path.Combine(appcatalogDir, "extantAppData.json");
                         Console.Write("Reading Extant Catalog: " + catalogFile + "...");
                         List<AppDefinition> extantCatalog = ReadCatalogFile(catalogFile);
@@ -628,15 +636,17 @@ namespace webOS.AppCatalog
                         //Define new app
                         AppDefinition newApp = new AppDefinition
                         {
-                            id = (highestIndexNum + 1)
+                            id = highestIndexNum,
+                            title = newName
                         };
                         extantCatalog.Add(newApp);
                         appCatalog.Add(newApp);
 
                         //Update file
                         Console.WriteLine();
-                        WriteCatalogFile("ExtantNew", extantCatalog);
-                        WriteCatalogFile("masterNew", appCatalog);
+                        WriteCatalogFile("extant", extantCatalog);
+                        WriteCatalogFile("master", appCatalog);
+                        File.Copy(Path.Combine(workingDir, "app-template.json"), Path.Combine(appcatalogDir, highestIndexNum + ".json"));
                         break;
                     }
             }

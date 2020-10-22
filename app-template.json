@@ -1,0 +1,48 @@
+{
+  "publicApplicationId": "com.test.testing",
+  "description": "This is a test app for a new category being developed. Please disregard.",
+  "version": "1.0.0",
+  "versionNote": "",
+  "homeURL": "http://www.webosarchive.com/",
+  "supportURL": "http://www.webosarchive.com.com/",
+  "custsupportemail": "",
+  "custsupportphonenum": "",
+  "copyright": "http://www.webosarchive.com/",
+  "licenseURL": "",
+  "locale": "en_US",
+  "appSize": 0,
+  "installSize": 0,
+  "isEncrypted": false,
+  "adultRating": false,
+  "islocationbased": false,
+  "lastModifiedTime": "2020-10-22T13:04:48-04:00",
+  "mediaLink": null,
+  "mediaIcon": null,
+  "attributes": {
+    "provides": {
+      "noApp": false,
+      "dockMode": false,
+      "universalSearch": false,
+      "connectors": [
+        "null"
+      ],
+      "services": [],
+      "optimizedUserExperience": false
+    }
+  },
+  "price": 0.00,
+  "currency": "USD",
+  "isAdvertized": false,
+  "filename": "com.test.testing",
+  "free": true,
+  "touchpad_exclusive": false,
+  "images": {
+    "1": {
+      "screenshot": "1005756/TalkNerdy.PNG",
+      "thumbnail": "1005756/TalkNerdy.PNG",
+      "orientation": "L",
+      "device": "T"
+    }
+  },
+  "originalFileName": "myapp.pdf.dragoncitygame_1.0.0.ipk"
+}

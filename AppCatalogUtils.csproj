@@ -6,11 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="app-template.json" />
     <None Remove="masterAppData.json" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="app-template.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
