@@ -102,7 +102,7 @@ namespace webOS.AppCatalog
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Build missing package with possible match report from folder");
-            Console.WriteLine("N) Find next available catalog number");
+            Console.WriteLine("N) Find next available catalog number, optionally insert new");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -228,7 +228,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        FindNextAvailCatalogNum();
+                        appCatalog = FindNextAvailCatalogNum(appCatalog);
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -597,10 +597,51 @@ namespace webOS.AppCatalog
             Console.WriteLine();
         }
 
-        public static void FindNextAvailCatalogNum()
+        public static List<AppDefinition> FindNextAvailCatalogNum(List<AppDefinition> appCatalog)
         {
-            Console.WriteLine("not werkin yet");
-            return;
+            int highestIndexNum = 0;
+            foreach (var appObj in appCatalog)
+            {
+                if (appObj.id > highestIndexNum)
+                    highestIndexNum = appObj.id;
+            }
+            Console.WriteLine("Highest index number found:  " + highestIndexNum);
+            Console.WriteLine("Suggested next index number: " + (highestIndexNum + 1));
+            Console.WriteLine();
+            Console.Write("Stub in new app to extant and master AppData files? ");
+            ConsoleKeyInfo choice = Console.ReadKey();
+            switch (choice.Key)
+            {
+                case ConsoleKey.N:
+                    {
+                        break;
+                    }
+                case ConsoleKey.Y:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        catalogFile = Path.Combine(appcatalogDir, "extantAppData.json");
+                        Console.Write("Reading Extant Catalog: " + catalogFile + "...");
+                        List<AppDefinition> extantCatalog = ReadCatalogFile(catalogFile);
+                        Console.WriteLine(extantCatalog.Count + " apps found.");
+
+                        //Define new app
+                        AppDefinition newApp = new AppDefinition
+                        {
+                            id = (highestIndexNum + 1)
+                        };
+                        extantCatalog.Add(newApp);
+                        appCatalog.Add(newApp);
+
+                        //Update file
+                        Console.WriteLine();
+                        WriteCatalogFile("ExtantNew", extantCatalog);
+                        WriteCatalogFile("masterNew", appCatalog);
+                        break;
+                    }
+            }
+
+            return appCatalog;
         }
 
         public static void GetAppIconsFromCatalog(List<AppDefinition> appCatalog)
@@ -940,12 +981,12 @@ namespace webOS.AppCatalog
                     //Look to see if the app package exists in the search folder
                     if (File.Exists(Path.Combine(appPackageDir, fileName)))
                     {
-                        Console.WriteLine("Added   ");
+                        Console.WriteLine("Added       ");
                         extantAppCatalog.Add(appObj);
                     }
                     else
                     {
-                        Console.WriteLine("Skipped ");
+                        Console.WriteLine("Skipped     ");
                         missingAppCatalog.Add(appObj);
                     }
                 }
@@ -1066,7 +1107,7 @@ namespace webOS.AppCatalog
 
         public static void WriteCatalogFile(string catalogName, List<AppDefinition> newAppCatalog)
         {
-            Console.WriteLine(catalogName + " app catalog count: " + newAppCatalog.Count);
+            Console.WriteLine(catalogName + " app catalog count now: " + newAppCatalog.Count);
             string newAppCatJson = Newtonsoft.Json.JsonConvert.SerializeObject(newAppCatalog);
             StreamWriter objWriter;
             objWriter = new StreamWriter(Path.Combine(appcatalogDir, catalogName + "AppData.json"));
