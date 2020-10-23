@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="AppEditor\**" />
+    <EmbeddedResource Remove="AppEditor\**" />
+    <None Remove="AppEditor\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="app-template.json" />
     <None Remove="masterAppData.json" />
   </ItemGroup>

@@ -232,8 +232,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        //StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
-                        CleanUpApprovedMatches(Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
+                        StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
                         return true;
                     }
                 case ConsoleKey.N:
