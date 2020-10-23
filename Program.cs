@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace webOS.AppCatalog
 {
@@ -22,6 +23,7 @@ namespace webOS.AppCatalog
         public static string appImageDir = "AppImages";
         public static string appUpdateDir = "AppUpdates";
         public static string appUnknownDir = "AppUnknown";
+        public static string appMatchedDir = "AppMatched";
         public static string appAlternateDir = "AppAlternates";
         public static string reportsDir = "Reports";
 
@@ -68,6 +70,7 @@ namespace webOS.AppCatalog
             appImageDir = Path.Combine(appcatalogDir, appImageDir);
             appUpdateDir = Path.Combine(appcatalogDir, appUpdateDir);
             appUnknownDir = Path.Combine(appcatalogDir, appUnknownDir);
+            appMatchedDir = Path.Combine(appcatalogDir, appMatchedDir);
             appAlternateDir = Path.Combine(appcatalogDir, appUnknownDir);
 
             //Figure out report paths
@@ -102,6 +105,7 @@ namespace webOS.AppCatalog
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Build missing package with possible match report from folder");
+            Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
@@ -221,6 +225,15 @@ namespace webOS.AppCatalog
                             searchFolder = strInputPath;
 
                         BuildMissingPackageInfoReport(missingMasterDataFile, searchFolder);
+                        return true;
+                    }
+                case ConsoleKey.M:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        //StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
+                        CleanUpApprovedMatches(Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
                         return true;
                     }
                 case ConsoleKey.N:
@@ -595,6 +608,72 @@ namespace webOS.AppCatalog
             Console.WriteLine();
             Console.WriteLine("Total JSON files converted: " + i.ToString());
             Console.WriteLine();
+        }
+
+        public static void StageAndUpdateApprovedMatches(List<AppDefinition> appCatalog, string pathToMatchFile)
+        {
+            //loop through catalog
+            if (!Directory.Exists(appMatchedDir))
+            {
+                Directory.CreateDirectory(appMatchedDir);
+            }
+            Console.WriteLine("Reading approved matches...");
+            Console.WriteLine();
+
+            var matchLines = File.ReadAllLines(pathToMatchFile);
+            Dictionary<string, string> matchApps = new Dictionary<string, string>();
+            foreach (var match in matchLines)
+            {
+                string[] matchParts = match.Split(",");
+                matchApps.Add(matchParts[1], matchParts[2]);
+            }
+
+            int i = 0;
+            int appsWithMatch = 0;
+            int failedMatch = 0;
+            foreach (var appObj in appCatalog)
+            {
+                i++;
+                int percentDone = (int)Math.Round((double)(100 * i) / appCatalog.Count);
+                Console.CursorTop--;
+                Console.WriteLine("Reading Index #" + i.ToString() + " - " + percentDone.ToString() + "% Done");
+
+                //Figure out meta file name to check
+                var checkFile = Path.Combine(appMetaDir, appObj.id + ".json");
+
+                //Look to see if the app entry exists in the metadata folder
+                if (File.Exists(checkFile))
+                {
+                    //open json
+                    var myJsonString = File.ReadAllText(checkFile);
+                    var myJObject = JObject.Parse(myJsonString);
+                    var fileNameToken = myJObject.SelectToken("filename");
+                    var originalFileName = fileNameToken.Value<string>();
+                    if (matchApps.ContainsKey(fileNameToken.Value<string>()))
+                    {
+                        try
+                        {
+                            File.Move(Path.Combine(appUnknownDir, matchApps[originalFileName]), Path.Combine(appMatchedDir, matchApps[originalFileName]), true);
+                            fileNameToken.Replace(matchApps[originalFileName]);
+                            StreamWriter newJsonWriter = new StreamWriter(Path.Combine(appMetaDir, checkFile));
+                            newJsonWriter.WriteLine(myJObject.ToString());
+                            newJsonWriter.Close();
+                            appsWithMatch++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Error: Failed to stage close match: " + checkFile + " - " + appObj.title);
+                            Console.WriteLine();
+                            failedMatch++;
+                        }
+                    }
+                }
+            }
+            Console.WriteLine();
+            Console.WriteLine("Matches Approved: " + matchApps.Count);
+            Console.WriteLine("Matches Found:    " + appsWithMatch);
+            Console.WriteLine("Matches Failed:    " + failedMatch);
         }
 
         public static List<AppDefinition> FindNextAvailCatalogNum(List<AppDefinition> appCatalog)
