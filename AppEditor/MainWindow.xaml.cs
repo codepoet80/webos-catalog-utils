@@ -14,7 +14,7 @@ namespace webOS.AppCatalog.AppEditor
     public partial class MainWindow : Window
     {
         public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
-        public static string appcatalogDir = Path.Combine(workingDir, "..\\..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
+        public static string appCatalogDir = Path.Combine(workingDir, "..\\..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
 
         public string currentFile = "";
         public string welcomeText = "Open file first...";
@@ -25,7 +25,7 @@ namespace webOS.AppCatalog.AppEditor
             txtMetaJson.Text = welcomeText;
 
             //de-relativize paths to make batch troublshooting easier
-            appcatalogDir = Path.GetFullPath((new Uri(appcatalogDir)).LocalPath);
+            appCatalogDir = Path.GetFullPath((new Uri(appCatalogDir)).LocalPath);
         }
 
         #region UI Handlers
@@ -68,7 +68,7 @@ namespace webOS.AppCatalog.AppEditor
             if (File.Exists(txtFilename.Text))
             {
                 txtMetaJson.Text = File.ReadAllText(txtFilename.Text);
-                List<AppDefinition> catalogApps = ReadCatalogFile(Path.Combine(appcatalogDir, "masterAppData.json"));
+                List<AppDefinition> catalogApps = ReadCatalogFile(Path.Combine(appCatalogDir, "masterAppData.json"));
                 foreach (AppDefinition findApp in catalogApps)
                 {
                     if (findApp.id.ToString() == System.IO.Path.GetFileNameWithoutExtension(txtFilename.Text))
@@ -203,7 +203,7 @@ namespace webOS.AppCatalog.AppEditor
                 proc.StartInfo.WorkingDirectory = workingDir;
                 proc.StartInfo.FileName = "Patch.bat";
                 proc.StartInfo.CreateNoWindow = false;
-                proc.StartInfo.ArgumentList.Add(appcatalogDir);
+                proc.StartInfo.ArgumentList.Add(appCatalogDir);
                 if (jsonFile != string.Empty)
                     proc.StartInfo.ArgumentList.Add(jsonFile);
                 proc.Start();
@@ -289,17 +289,17 @@ namespace webOS.AppCatalog.AppEditor
 
             //Try to write catalog files
             bool catalogWriteFailure = true;
-            List<AppDefinition> masterAppCatalog = ReadCatalogFile(Path.Combine(appcatalogDir, "masterAppData.json"));
+            List<AppDefinition> masterAppCatalog = ReadCatalogFile(Path.Combine(appCatalogDir, "masterAppData.json"));
             if (TryReplaceAppInCatalog(appUpdate, masterAppCatalog, out masterAppCatalog))
             {
                 if (!WriteCatalogFile("master", masterAppCatalog))
                     return false;
                 else
                 {
-                    List<AppDefinition> extantAppCatalog = ReadCatalogFile(Path.Combine(appcatalogDir, "extantAppData.json"));
+                    List<AppDefinition> extantAppCatalog = ReadCatalogFile(Path.Combine(appCatalogDir, "extantAppData.json"));
                     if (!TryReplaceAppInCatalog(appUpdate, extantAppCatalog, out extantAppCatalog))
                     {
-                        List<AppDefinition> missingAppCatalog = ReadCatalogFile(Path.Combine(appcatalogDir, "missingAppData.json"));
+                        List<AppDefinition> missingAppCatalog = ReadCatalogFile(Path.Combine(appCatalogDir, "missingAppData.json"));
                         if (!TryReplaceAppInCatalog(appUpdate, missingAppCatalog, out missingAppCatalog))
                         {
                             MessageBox.Show("Although the app was updated in the masterAppCatalog, it could not be updated in the extant/missing catalogs", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -371,7 +371,7 @@ namespace webOS.AppCatalog.AppEditor
                 Console.WriteLine(catalogName + " app catalog count now: " + newAppCatalog.Count);
                 string newAppCatJson = Newtonsoft.Json.JsonConvert.SerializeObject(newAppCatalog);
                 StreamWriter objWriter;
-                objWriter = new StreamWriter(System.IO.Path.Combine(appcatalogDir, catalogName + "AppData.json"));
+                objWriter = new StreamWriter(System.IO.Path.Combine(appCatalogDir, catalogName + "AppData.json"));
                 objWriter.WriteLine(newAppCatJson);
                 objWriter.Close();
             }

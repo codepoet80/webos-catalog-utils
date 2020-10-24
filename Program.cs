@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Xml.Schema;
 
 namespace webOS.AppCatalog
 {
@@ -14,13 +16,14 @@ namespace webOS.AppCatalog
         #region Environment and UI
 
         public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
-        public static string appcatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
+        public static string appCatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
         public static string catalogFile;
 
         public static string incomingDir = "Incoming";
         public static string appPackageDir = "AppPackages";
         public static string appMetaDir = "AppMetaData";
         public static string appImageDir = "AppImages";
+        public static string appReviewDir = "AppReviews";
         public static string appUpdateDir = "AppUpdates";
         public static string appUnknownDir = "AppUnknown";
         public static string appMatchedDir = "AppMatched";
@@ -37,22 +40,22 @@ namespace webOS.AppCatalog
         public static void Main(string[] args)
         {
             //Figure out our base folder
-            appcatalogDir = Path.GetFullPath(appcatalogDir);
-            Console.WriteLine("Current Destination Folder Base: " + appcatalogDir);
+            appCatalogDir = Path.GetFullPath(appCatalogDir);
+            Console.WriteLine("Current Destination Folder Base: " + appCatalogDir);
             Console.Write("Enter alternate path, or press enter: ");
             string strInputDir = Console.ReadLine();
             if (strInputDir.Length > 1)
-                appcatalogDir = strInputDir;
-            Console.WriteLine("Using: " + appcatalogDir);
-            if (!Directory.Exists(appcatalogDir))
+                appCatalogDir = strInputDir;
+            Console.WriteLine("Using: " + appCatalogDir);
+            if (!Directory.Exists(appCatalogDir))
             {
                 Console.WriteLine("Warning: Destination folder not found, will attempt to create!");
-                Directory.CreateDirectory(appcatalogDir);
+                Directory.CreateDirectory(appCatalogDir);
             }
             Console.WriteLine();
 
             //Read Master App Data (aka the Catalog) into memory
-            catalogFile = Path.Combine(appcatalogDir, "masterAppData.json");
+            catalogFile = Path.Combine(appCatalogDir, "masterAppData.json");
             Console.WriteLine("Current Catalog File: " + catalogFile);
             Console.WriteLine("Enter alternate path, or press enter: ");
             string strInputFile = Console.ReadLine();
@@ -64,14 +67,21 @@ namespace webOS.AppCatalog
             Console.WriteLine();
 
             //Figure out folders
-            incomingDir = Path.Combine(appcatalogDir, incomingDir);
-            appPackageDir = Path.Combine(appcatalogDir, appPackageDir);
-            appMetaDir = Path.Combine(appcatalogDir, appMetaDir);
-            appImageDir = Path.Combine(appcatalogDir, appImageDir);
-            appUpdateDir = Path.Combine(appcatalogDir, appUpdateDir);
-            appUnknownDir = Path.Combine(appcatalogDir, appUnknownDir);
-            appMatchedDir = Path.Combine(appcatalogDir, appMatchedDir);
-            appAlternateDir = Path.Combine(appcatalogDir, appUnknownDir);
+            incomingDir = Path.Combine(appCatalogDir, incomingDir);
+            appPackageDir = Path.Combine(appCatalogDir, appPackageDir);
+            if (!Directory.Exists(appPackageDir))
+                Console.WriteLine("Warning: AppPackage folder not found. The program will likely crash.");
+            appMetaDir = Path.Combine(appCatalogDir, appMetaDir);
+            if (!Directory.Exists(appMetaDir))
+                Console.WriteLine("Warning: AppMetadata folder not found. The program will likely crash.");
+            appImageDir = Path.Combine(appCatalogDir, appImageDir);
+            if (!Directory.Exists(appImageDir))
+                Console.WriteLine("Warning: AppImages folder not found. The program will likely crash.");
+            appReviewDir = Path.Combine(appCatalogDir, appUpdateDir);
+            appUpdateDir = Path.Combine(appCatalogDir, appUpdateDir);
+            appUnknownDir = Path.Combine(appCatalogDir, appUnknownDir);
+            appMatchedDir = Path.Combine(appCatalogDir, appMatchedDir);
+            appAlternateDir = Path.Combine(appCatalogDir, appUnknownDir);
 
             //Figure out report paths
             reportsDir = Path.Combine(workingDir, reportsDir);
@@ -107,6 +117,8 @@ namespace webOS.AppCatalog
             Console.WriteLine("9) Build missing package with possible match report from folder");
             Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
+            Console.WriteLine("D) Remove duplicate AppUpdates from AppUnknown");
+            Console.WriteLine("S) Find and insert star ratings");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -183,8 +195,8 @@ namespace webOS.AppCatalog
                     {
                         Console.WriteLine();
                         Console.WriteLine();
-                        Console.WriteLine("Catalog extant files to: " + appcatalogDir);
-                        Console.WriteLine("Catalog missing files to: " + appcatalogDir);
+                        Console.WriteLine("Catalog extant files to: " + appCatalogDir);
+                        Console.WriteLine("Catalog missing files to: " + appCatalogDir);
                         Console.WriteLine();
                         GenerateExtantCatalog(appCatalog);
                         return true;
@@ -201,7 +213,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        string searchFolder = Path.Combine(appcatalogDir, "_AppImages");
+                        string searchFolder = Path.Combine(appCatalogDir, "_AppImages");
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
                         string strInputPath = Console.ReadLine();
@@ -232,7 +244,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         Console.WriteLine();
 
-                        StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appcatalogDir, "ApprovedMatches.csv"));
+                        StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appCatalogDir, "ApprovedMatches.csv"));
                         return true;
                     }
                 case ConsoleKey.N:
@@ -241,6 +253,28 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
 
                         appCatalog = FindNextAvailCatalogNum(appCatalog);
+                        return true;
+                    }
+                case ConsoleKey.D:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        RemoveAppUpdateDuplicatesFromAppUnknown();
+                        return true;
+                    }
+                case ConsoleKey.S:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        string ratingsDir = appReviewDir;
+                        Console.WriteLine("Current Reviews Folder: " + ratingsDir);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
+                            ratingsDir = strInputPath;
+
+                        FindAndInsertStarRating(ratingsDir);
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -269,7 +303,7 @@ namespace webOS.AppCatalog
 
             //Setup report
             System.IO.StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(appcatalogDir, catalogIndexReport));
+            objWriter = new StreamWriter(Path.Combine(appCatalogDir, catalogIndexReport));
             var headerLine = "AppID,Title,Category,FileName,Status,Filename";
             objWriter.WriteLine(headerLine);
             int i = 0;
@@ -306,7 +340,7 @@ namespace webOS.AppCatalog
                     {
                         appsFound++;
                         //Copy to new home
-                        var newHome = Path.Combine(appcatalogDir, appPackageDir, fileName);
+                        var newHome = Path.Combine(appCatalogDir, appPackageDir, fileName);
                         if (searchFolder != appPackageDir)
                             File.Move(Path.Combine(searchFolder, fileName), newHome, true);
 
@@ -509,6 +543,29 @@ namespace webOS.AppCatalog
             Console.WriteLine("Missing Item report: " + FileReverseReport);
         }
 
+        public static void RemoveAppUpdateDuplicatesFromAppUnknown()
+        {
+
+            //Scan the search folder for files and check if they're found in meta data index
+            string[] fileEntries = Directory.GetFiles(appUpdateDir, "*.ipk");
+            int totalFound = 0;
+            int i = 0;
+            Console.WriteLine("Scanning " + fileEntries.Length + " files...");
+            Console.WriteLine();
+            foreach (string pkgFile in fileEntries)
+            {
+                string checkDupeName = Path.GetFileName(pkgFile);
+                string checkDupePath = Path.Combine(appUnknownDir, checkDupeName);
+                if (File.Exists(checkDupePath))
+                {
+                    Console.WriteLine("Delete: AppUnknown\\" + checkDupeName);
+                    //File.Delete(checkDupePath);
+                    totalFound++;
+                }
+            }
+            Console.WriteLine("Total deleted: " + totalFound);
+        }
+
         public static void BuildMissingPackageInfoReport(string missingAppDataFile, string folderToSeachForPossibleMatches)
         {
             List<AppDefinition> missingAppCatalog = ReadCatalogFile(missingAppDataFile);
@@ -565,12 +622,6 @@ namespace webOS.AppCatalog
             Console.WriteLine("Updating metafile structure...");
             Console.WriteLine();
 
-            var outputDir = Path.Combine(appMetaDir.Replace("AppMetaData", "AppMetaDataNew"));
-            if (!Directory.Exists(outputDir))
-            {
-                Directory.CreateDirectory(outputDir);
-            }
-
             //Loop through all metadata files
             string[] fileEntries = Directory.GetFiles(appMetaDir, "*.json");
             int i = 0;
@@ -581,10 +632,25 @@ namespace webOS.AppCatalog
                 try
                 {
                     string ipkFilename = myJObject.SelectToken("filename").Value<String>();
-                    myJObject.Add("originalFileName", ipkFilename);
-                    StreamWriter newJsonWriter = new StreamWriter(Path.Combine(outputDir, Path.GetFileName(metaFile)));
-                    newJsonWriter.WriteLine(myJObject.ToString());
-                    newJsonWriter.Close();
+                    bool dirty = false;
+                    //Add field for original file name so we can preserve history but also move forward
+                    if (myJObject.SelectToken("originalFileName") == null)
+                    {
+                        dirty = true;
+                        myJObject.Add("originalFileName", ipkFilename);
+                    }
+                    //Add field to host star rating, to be calculated from scraped data
+                    if (myJObject.SelectToken("starRating") == null)
+                    {
+                        dirty = true;
+                        myJObject.Add("starRating", null);
+                    }
+                    if (dirty)
+                    {
+                        StreamWriter newJsonWriter = new StreamWriter(Path.Combine(appMetaDir, Path.GetFileName(metaFile)));
+                        newJsonWriter.WriteLine(myJObject.ToString());
+                        newJsonWriter.Close();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -607,6 +673,118 @@ namespace webOS.AppCatalog
             Console.WriteLine();
             Console.WriteLine("Total JSON files converted: " + i.ToString());
             Console.WriteLine();
+        }
+
+        public static void FindAndInsertStarRating(string ratingsDir)
+        {
+            //Check each metadata file to make sure its in the catalog file
+            Console.WriteLine();
+            Console.WriteLine("Looking for star ratings...");
+            Console.WriteLine();
+
+            //Loop through all metadata files
+            string[] fileEntries = Directory.GetFiles(appMetaDir, "*.json");
+            int i = 0;
+            foreach (string metaFile in fileEntries)
+            {
+                string myJsonString = File.ReadAllText(metaFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+                int ratingValue = 0;
+                try
+                {
+                    if (TryParseStarRating(Path.Combine(ratingsDir, Path.GetFileName(metaFile)), out ratingValue) && ratingValue > 0)
+                    {
+                        //Add field to host star rating, to be calculated from scraped data
+                        if (myJObject.SelectToken("starRating") != null)
+                            myJObject.Remove("starRating");
+                        myJObject.Add("starRating", ratingValue);
+                        StreamWriter newJsonWriter = new StreamWriter(Path.Combine(appMetaDir, Path.GetFileName(metaFile)));
+                        newJsonWriter.WriteLine(myJObject.ToString());
+                        newJsonWriter.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex.Message);
+                    Console.ReadLine();
+                }
+
+                var metaFileIndexStr = Path.GetFileNameWithoutExtension(metaFile);
+                int.TryParse(metaFileIndexStr, out int metaFileIndex);
+
+                Console.CursorTop--;
+                Console.Write("Meta File: " + metaFileIndex.ToString() + " - ");
+
+                //Update output with findings
+                int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
+                Console.WriteLine(percentDone.ToString() + "% - " + ratingValue + " stars   ");
+                i++;
+            }
+            //Finalize report
+            Console.WriteLine();
+            Console.WriteLine("Total Ratings Added: " + i.ToString());
+            Console.WriteLine();
+        }
+
+        public static bool TryParseStarRating(string ratingsFile, out int rating)
+        {
+            rating = 0;
+            if (File.Exists(ratingsFile))
+            {
+                string myJsonString = File.ReadAllText(ratingsFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+                try
+                {
+                    foreach (JProperty prop in myJObject.Properties())
+                    {
+                        //HACK: This is a horribly inefficient search, because I couldn't figure out how to parse HP's weird JSON
+                        if (prop.Name == "UserRatingList")
+                        {
+                            foreach (JObject innerObj in prop)
+                            {
+                                try
+                                {
+                                    JArray ratingsList = innerObj.SelectToken("ratings").Value<JArray>();
+                                    if (ratingsList != null)
+                                    {
+                                        double average;
+                                        List<int> scores = new List<int>();
+                                        foreach (var r in ratingsList.Children<JObject>())
+                                        {
+                                            RatingsDefinition thisChild = r.ToObject<RatingsDefinition>();
+                                            if (thisChild != null)
+                                            {
+                                                scores.Add(thisChild.score);
+                                            }
+                                        }
+                                        average = scores.Take(scores.Count).Average();
+                                        rating = (int)Math.Round(average, 1);
+                                        return true;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    try
+                                    {
+                                        RatingsDefinition thisChild = innerObj.ToObject<RatingsDefinition>();
+                                        rating = thisChild.score;
+                                        return true;
+                                    }
+                                    catch (Exception exIn)
+                                    {
+                                        //Oh well, we tried
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch(Exception ex)
+                {
+                    //Oh well, we tried
+                }
+            }
+            return false;
         }
 
         public static void StageAndUpdateApprovedMatches(List<AppDefinition> appCatalog, string pathToMatchFile)
@@ -706,7 +884,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
 
                         //Read in extant catalog
-                        catalogFile = Path.Combine(appcatalogDir, "extantAppData.json");
+                        catalogFile = Path.Combine(appCatalogDir, "extantAppData.json");
                         Console.Write("Reading Extant Catalog: " + catalogFile + "...");
                         List<AppDefinition> extantCatalog = ReadCatalogFile(catalogFile);
                         Console.WriteLine(extantCatalog.Count + " apps found.");
@@ -731,7 +909,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         WriteCatalogFile("extant", extantCatalog);
                         WriteCatalogFile("master", appCatalog);
-                        File.Copy(Path.Combine(workingDir, "app-template.json"), Path.Combine(appcatalogDir, "AppMetadata", highestIndexNum + ".json"));
+                        File.Copy(Path.Combine(workingDir, "app-template.json"), Path.Combine(appCatalogDir, "AppMetadata", highestIndexNum + ".json"));
                         break;
                     }
             }
@@ -1205,7 +1383,7 @@ namespace webOS.AppCatalog
             Console.WriteLine(catalogName + " app catalog count now: " + newAppCatalog.Count);
             string newAppCatJson = Newtonsoft.Json.JsonConvert.SerializeObject(newAppCatalog);
             StreamWriter objWriter;
-            objWriter = new StreamWriter(Path.Combine(appcatalogDir, catalogName + "AppData.json"));
+            objWriter = new StreamWriter(Path.Combine(appCatalogDir, catalogName + "AppData.json"));
             objWriter.WriteLine(newAppCatJson);
             objWriter.Close();
         }

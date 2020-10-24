@@ -45,4 +45,24 @@ namespace webOS.AppCatalog
         public int buildVersion;
         public string platform;
     }
+
+    [JsonObject]
+    public class UserRatingsDefinition
+    {
+        public RatingsDefinition[] UserRatingList;
+    }
+
+    [JsonObject]
+    public class RatingsDefinition
+    {
+        public string accountId;
+        public string comment;
+        public string creationtime;
+        public string creator;
+        public int id;
+        public bool isAnonymous;
+        public bool isInappropriate;
+        public string locale;
+        public int score;
+    }
 }
