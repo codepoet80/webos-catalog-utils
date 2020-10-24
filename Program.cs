@@ -14,7 +14,7 @@ namespace webOS.AppCatalog
         #region Environment and UI
 
         public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
-        public static string appcatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");
+        public static string appcatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
         public static string catalogFile;
 
         public static string incomingDir = "Incoming";
@@ -715,7 +715,14 @@ namespace webOS.AppCatalog
                         AppDefinition newApp = new AppDefinition
                         {
                             id = highestIndexNum,
-                            title = newName
+                            title = newName,
+                            author = "none",
+                            summary = "none",
+                            appIcon = "",
+                            appIconBig = "",
+                            category = "Revisionist History",
+                            vendorId = "",
+                            TouchPad = true
                         };
                         extantCatalog.Add(newApp);
                         appCatalog.Add(newApp);
@@ -724,7 +731,7 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
                         WriteCatalogFile("extant", extantCatalog);
                         WriteCatalogFile("master", appCatalog);
-                        File.Copy(Path.Combine(workingDir, "app-template.json"), Path.Combine(appcatalogDir, highestIndexNum + ".json"));
+                        File.Copy(Path.Combine(workingDir, "app-template.json"), Path.Combine(appcatalogDir, "AppMetadata", highestIndexNum + ".json"));
                         break;
                     }
             }

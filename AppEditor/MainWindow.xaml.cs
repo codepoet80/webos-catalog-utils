@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,7 +13,9 @@ namespace webOS.AppCatalog.AppEditor
     
     public partial class MainWindow : Window
     {
-        public static string appcatalogDir = @"C:\Users\Jonathan Wise\Projects\_webOSAppCatalog";
+        public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
+        public static string appcatalogDir = Path.Combine(workingDir, "..\\..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
+
         public string currentFile = "";
         public string welcomeText = "Open file first...";
         public bool unsaved = false;
@@ -20,6 +23,9 @@ namespace webOS.AppCatalog.AppEditor
         {
             InitializeComponent();
             txtMetaJson.Text = welcomeText;
+
+            //de-relativize paths to make batch troublshooting easier
+            appcatalogDir = Path.GetFullPath((new Uri(appcatalogDir)).LocalPath);
         }
 
         #region UI Handlers
@@ -101,15 +107,16 @@ namespace webOS.AppCatalog.AppEditor
 
         private void btnValidate_Click(object sender, RoutedEventArgs e)
         {
-            validateMetaJson();
+            validateMetaJson(false);
         }
 
-        private bool validateMetaJson()
+        private bool validateMetaJson(bool quiet)
         {
             try
             {
                 JObject.Parse(txtMetaJson.Text);
-                MessageBox.Show("JSON checks out OK!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (!quiet)
+                    MessageBox.Show("JSON checks out OK!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 return true;
             }
             catch (Exception ex)
@@ -161,7 +168,7 @@ namespace webOS.AppCatalog.AppEditor
 
         private void doSave()
         {
-            if (validateMetaJson() && validateMasterFields())
+            if (validateMetaJson(true) && validateMasterFields())
             {
                 if (TrySaveAppInfo())
                 {
@@ -185,7 +192,23 @@ namespace webOS.AppCatalog.AppEditor
         private void doPatch()
         {
             if (!unsaved || (unsaved && MessageBox.Show("Are you sure you want to patch without saving?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes))
-                MessageBox.Show("I could run a batch file now, if you want...");
+            {
+                string jsonFile = string.Empty;
+                if (txtFilename.Text != "")
+                {
+                    jsonFile = Path.GetFileName(txtFilename.Text);
+                }
+                string workingDir = Path.Combine(Directory.GetCurrentDirectory());
+                Process proc = new Process();
+                proc.StartInfo.WorkingDirectory = workingDir;
+                proc.StartInfo.FileName = "Patch.bat";
+                proc.StartInfo.CreateNoWindow = false;
+                proc.StartInfo.ArgumentList.Add(appcatalogDir);
+                if (jsonFile != string.Empty)
+                    proc.StartInfo.ArgumentList.Add(jsonFile);
+                proc.Start();
+                proc.WaitForExit();
+            }
         }
 
         private void txtMetaJson_GotFocus(object sender, RoutedEventArgs e)
