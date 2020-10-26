@@ -36,6 +36,8 @@ namespace webOS.AppCatalog
 
     public class AppVersionDefinition
     {
+        public string appId;
+        public string fileName;
         public string packageName;
         public string publisherPrefix;
         public string appNameSuffix;
@@ -46,11 +48,6 @@ namespace webOS.AppCatalog
         public string platform;
     }
 
-    [JsonObject]
-    public class UserRatingsDefinition
-    {
-        public RatingsDefinition[] UserRatingList;
-    }
 
     [JsonObject]
     public class RatingsDefinition

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Schema;
 
@@ -25,7 +26,7 @@ namespace webOS.AppCatalog
         public static string appImageDir = "AppImages";
         public static string appReviewDir = "AppReviews";
         public static string appUpdateDir = "AppUpdates";
-        public static string appUnknownDir = "AppUnknown";
+        public static string appUnknownDir = "AppUnindexed";
         public static string appMatchedDir = "AppMatched";
         public static string appAlternateDir = "AppAlternates";
         public static string reportsDir = "Reports";
@@ -115,6 +116,7 @@ namespace webOS.AppCatalog
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Build missing package with possible match report from folder");
+            Console.WriteLine("H) Find and ingest highest update version, including metadata update");
             Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
             Console.WriteLine("D) Remove duplicate AppUpdates from AppUnknown");
@@ -261,6 +263,14 @@ namespace webOS.AppCatalog
                         Console.WriteLine();
 
                         RemoveAppUpdateDuplicatesFromAppUnknown();
+                        return true;
+                    }
+                case ConsoleKey.H:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+
+                        FindHighestUpdateVersion();
                         return true;
                     }
                 case ConsoleKey.S:
@@ -564,6 +574,128 @@ namespace webOS.AppCatalog
                 }
             }
             Console.WriteLine("Total deleted: " + totalFound);
+        }
+
+        public static void FindHighestUpdateVersion()
+        {
+            //Scan the updates folder and find the highest version
+            string[] fileEntries = Directory.GetFiles(appUpdateDir, "*.ipk");
+            int i = 0;
+            Console.WriteLine("Scanning " + fileEntries.Length + " Updates...");
+            Console.WriteLine();
+            Dictionary<string, AppVersionDefinition> highestUpdateVersions = new Dictionary<string, AppVersionDefinition>();
+            foreach (string pkgFile in fileEntries)
+            {
+                //Find the base file name
+                AppVersionDefinition thisApp = ExtractAppVersionDefinition(Path.GetFileNameWithoutExtension(pkgFile));
+                string[] otherFiles = Directory.GetFiles(appUpdateDir, thisApp.packageName + "*.ipk");
+                if (!highestUpdateVersions.ContainsKey(thisApp.packageName))
+                    highestUpdateVersions.Add(thisApp.packageName, thisApp);
+                else
+                {
+                    AppVersionDefinition currHighest = highestUpdateVersions[thisApp.packageName];
+                    if (thisApp.majorVersion > currHighest.majorVersion
+                        || thisApp.majorVersion == currHighest.majorVersion && thisApp.minorVersion > currHighest.minorVersion
+                        || thisApp.majorVersion == currHighest.majorVersion && thisApp.minorVersion == currHighest.minorVersion && thisApp.buildVersion > currHighest.buildVersion)
+                    {
+                        highestUpdateVersions[thisApp.packageName] = thisApp;
+                    }
+                }
+                Console.CursorTop--;
+                int percentDone = (int)Math.Round((double)(100 * i) / fileEntries.Length);
+                Console.WriteLine(percentDone.ToString() + "% Done");
+                i++;
+            }
+            Console.WriteLine();
+
+            //Scan the metadata and find the cataloged version
+            Console.WriteLine("Reading Metadata...");
+            Console.WriteLine();
+            Dictionary<string, AppVersionDefinition> catalogVersions = new Dictionary<string, AppVersionDefinition>();
+            string[] metaFiles = Directory.GetFiles(appMetaDir, "*.json");
+            int j = 0;
+            foreach (string metaFile in metaFiles)
+            {
+                //Load enough metadata to get an AppDefinition to compare
+                string myJsonString = File.ReadAllText(metaFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+
+                string metaAppFilename = myJObject.SelectToken("filename").Value<string>();
+                AppVersionDefinition thisApp = ExtractAppVersionDefinition(Path.GetFileNameWithoutExtension(metaAppFilename), Path.GetFileNameWithoutExtension(metaFile));
+                if (!catalogVersions.ContainsKey(thisApp.packageName))
+                    catalogVersions.Add(thisApp.packageName, thisApp);
+
+                //Update status on screen
+                Console.CursorTop--;
+                int percentDone = (int)Math.Round((double)(100 * j) / metaFiles.Length);
+                Console.WriteLine(percentDone.ToString() + "% Done");
+                j++;
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("Listing results...");
+            //Now decide which is a better version to use
+            int updateCount = 0;
+            Dictionary<string, AppVersionDefinition> failedUpdates = new Dictionary<string, AppVersionDefinition>();
+            foreach (KeyValuePair<string, AppVersionDefinition> highestUpdate in highestUpdateVersions)
+            {
+                if (catalogVersions.ContainsKey(highestUpdate.Key))
+                {
+                    AppVersionDefinition highestUpdateDefinition = highestUpdate.Value;
+                    AppVersionDefinition catalogAppDefinition = catalogVersions[highestUpdate.Key];
+                    if (catalogAppDefinition.majorVersion > highestUpdateDefinition.majorVersion
+                        || catalogAppDefinition.majorVersion == highestUpdateDefinition.majorVersion && catalogAppDefinition.minorVersion > highestUpdateDefinition.minorVersion
+                        || catalogAppDefinition.majorVersion == highestUpdateDefinition.majorVersion && catalogAppDefinition.minorVersion == highestUpdateDefinition.minorVersion && catalogAppDefinition.buildVersion >= highestUpdateDefinition.buildVersion)
+                    {
+                        //do nothing... but its easier to evaluate everything as true and do an else
+                    }
+                    else
+                    {
+                        string updateMetaFilename = Path.Combine(appMetaDir, (catalogAppDefinition.appId + ".json"));
+                        Console.Write("Update " + catalogAppDefinition.fileName + " (" + catalogAppDefinition.appId + ") to " + highestUpdateDefinition.fileName + "...");
+                        string myJsonString = File.ReadAllText(updateMetaFilename);
+                        JObject myJObject = JObject.Parse(myJsonString);
+                        try
+                        {
+                            //Update metadata
+                            long fileLength = new System.IO.FileInfo(Path.Combine(appUpdateDir, highestUpdateDefinition.fileName + ".ipk")).Length;
+                            myJObject.Remove("version");
+                            string newVersion = highestUpdateDefinition.majorVersion + "." + highestUpdateDefinition.minorVersion + "." + highestUpdateDefinition.buildVersion;
+                            myJObject.Add("version", newVersion);
+                            myJObject.Remove("filename");
+                            myJObject.Add("filename", highestUpdateDefinition.fileName + ".ipk");
+                            myJObject.Remove("appSize");
+                            myJObject.Add("appSize", fileLength.ToString());
+                            //Save metadata file
+                            StreamWriter newJsonWriter = new StreamWriter(Path.Combine(appMetaDir, updateMetaFilename));
+                            newJsonWriter.WriteLine(myJObject.ToString());
+                            newJsonWriter.Close();
+                            //Copy app package
+                            File.Move(Path.Combine(appUpdateDir, highestUpdateDefinition.fileName + ".ipk"), Path.Combine(appPackageDir, highestUpdateDefinition.fileName + ".ipk"), true);
+                            Console.WriteLine("OK");
+                            updateCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Fail");
+                            failedUpdates.Add(catalogAppDefinition.packageName, highestUpdateDefinition);
+                        }
+                    }
+                }
+            }
+            Console.WriteLine();
+            Console.WriteLine("Total updates performed: " + updateCount);
+            Console.WriteLine("Total updates failed:    " + failedUpdates.Count);
+            Console.WriteLine("Total unneeded updates:  " + (fileEntries.Length - failedUpdates.Count));
+            if (failedUpdates.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Failures: ");
+                foreach(KeyValuePair<string, AppVersionDefinition> failedUpdate in failedUpdates)
+                {
+                    Console.WriteLine(failedUpdate.Value.fileName);
+                }
+            }
         }
 
         public static void BuildMissingPackageInfoReport(string missingAppDataFile, string folderToSeachForPossibleMatches)
@@ -1309,14 +1441,22 @@ namespace webOS.AppCatalog
             return possibleMatches;
         }
 
+        public static AppVersionDefinition ExtractAppVersionDefinition(string fileName, string appId)
+        {
+            AppVersionDefinition thisApp = ExtractAppVersionDefinition(fileName);
+            thisApp.appId = appId;
+            return thisApp;
+        }
+
         public static AppVersionDefinition ExtractAppVersionDefinition(string fileName)
         {
             fileName = fileName.ToLower();
             AppVersionDefinition thisApp = new AppVersionDefinition();
+            thisApp.fileName = fileName;
             string[] fileNameParts = fileName.Split("_");
             thisApp.packageName = fileNameParts[0];
             string versionNumber;
-            if (fileNameParts.Length > 2)
+            if (fileNameParts.Length >= 2)
             {
                 versionNumber = fileNameParts[1];
                 if (versionNumber != String.Empty)
@@ -1353,10 +1493,6 @@ namespace webOS.AppCatalog
             }
             if (thisApp.publisherPrefix != null)
                 thisApp.publisherPrefix = thisApp.publisherPrefix.Substring(0, thisApp.publisherPrefix.Length - 1);
-            if (thisApp.appNameModifier != null && thisApp.appNameModifier != "")
-            {
-                Debug.Print("found one");
-            }
             return thisApp;
         }
 
