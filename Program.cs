@@ -37,6 +37,7 @@ namespace webOS.AppCatalog
         public static string ImageSortReport = @"ImageSortReport.csv";
         public static string MissingIconReport = @"MissingIcons.csv";
         public static string MissingPackageInfoReport = @"MissingPackageInfo.csv";
+        public static string RequestedPackageReport = @"Requested.csv";
 
         public static void Main(string[] args)
         {
@@ -91,6 +92,7 @@ namespace webOS.AppCatalog
             ImageSortReport = Path.Combine(reportsDir, ImageSortReport);
             MissingIconReport = Path.Combine(reportsDir, MissingIconReport);
             MissingPackageInfoReport = Path.Combine(reportsDir, MissingPackageInfoReport);
+            RequestedPackageReport = Path.Combine(reportsDir, RequestedPackageReport);
 
             //Ask the user what they want to do
             ShowMenu();
@@ -116,11 +118,13 @@ namespace webOS.AppCatalog
             Console.WriteLine("7) Scrape icons from web to destination");
             Console.WriteLine("8) Search local folder and Internet sources for images in metadata");
             Console.WriteLine("9) Build missing package with possible match report from folder");
+            Console.WriteLine("F) Fix Pre 2 Compatibility metadata");
             Console.WriteLine("H) Find and ingest highest update version, including metadata update");
             Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
             Console.WriteLine("D) Remove duplicate AppUpdates from AppUnknown");
             Console.WriteLine("S) Find and insert star ratings");
+            Console.WriteLine("T) Search for catalog matches from Text file");
             Console.WriteLine("X) Exit");
             Console.WriteLine();
             Console.Write("Selection: ");
@@ -265,6 +269,20 @@ namespace webOS.AppCatalog
                         RemoveAppUpdateDuplicatesFromAppUnknown();
                         return true;
                     }
+                case ConsoleKey.F:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        string origMasterData = Path.Combine(appCatalogDir, "Pre2AppData.json");
+                        Console.WriteLine("Original Master Data: " + origMasterData);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
+                            origMasterData = strInputPath;
+
+                        FixPreTwoCompat(origMasterData);
+                        return true;
+                    }
                 case ConsoleKey.H:
                     {
                         Console.WriteLine();
@@ -285,6 +303,28 @@ namespace webOS.AppCatalog
                             ratingsDir = strInputPath;
 
                         FindAndInsertStarRating(ratingsDir);
+                        return true;
+                    }
+                case ConsoleKey.T:
+                    {
+                        string wantedListFile = Path.Combine(workingDir, reportsDir, "wanted.txt");
+                        string dirListFile = Path.Combine(appCatalogDir, "DirListing.txt");
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        
+                        Console.WriteLine("Wanted List file: " + wantedListFile);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
+                            wantedListFile = strInputPath;
+                        Console.WriteLine();
+                        Console.WriteLine("New Dir List file: " + dirListFile);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && Directory.Exists(strInputPath))
+                            dirListFile = strInputPath;
+
+                        CompareDirListToWantedList(wantedListFile, dirListFile);
                         return true;
                     }
                 case ConsoleKey.X:  //Quit
@@ -1400,6 +1440,132 @@ namespace webOS.AppCatalog
             WriteCatalogFile("Missing", missingAppCatalog);
         }
 
+        public static void FixPreTwoCompat(string origMasterDataFile)
+        {
+            //Read origMasterDataFile into memory
+            Console.WriteLine("Reading original catalog...");
+            List<AppDefinitionOld> OriginalAppData = ReadOldCatalogFile(origMasterDataFile);
+            //For each .json file
+            foreach (string checkFileName in Directory.GetFiles(appCatalogDir, "*.json"))
+            {
+                //If its not the origMasterDataFile
+                if (Path.GetFileName(checkFileName) != Path.GetFileName(origMasterDataFile))
+                {
+                    Console.WriteLine("Correcting " + Path.GetFileName(checkFileName) + "...");
+                    //Read it into memory
+                    List<AppDefinition> thisAppData = ReadCatalogFile(checkFileName);
+                    //For each app in the file
+                    foreach (AppDefinition thisApp in thisAppData)
+                    {
+                        foreach (AppDefinitionOld sourceApp in OriginalAppData)
+                        {
+                            //check origMasterDataFile in memory for matching appid
+                            //If they're the same
+                            if (thisApp.id == sourceApp.id)
+                            {
+                                //Copy "Pre 2" value in orig to Pre2 value in this file
+                                thisApp.Pre2 = sourceApp.Pre2;
+                            }
+                        }
+                    }
+                    string writeFileName = Path.GetFileNameWithoutExtension(checkFileName);
+                    writeFileName = writeFileName.Replace("AppData", "");
+                    WriteCatalogFile(writeFileName, thisAppData);
+                }
+            }                
+        }
+
+        public static void CompareDirListToWantedList(string wantedListFile, string dirListFile)
+        {
+            //Setup the report
+            StreamWriter objWriter;
+            objWriter = new StreamWriter(RequestedPackageReport);
+
+            //Check each package file in a folder to see if it exists in the catalog
+            Console.WriteLine();
+            Console.WriteLine("Loading Wanted List...");
+
+            //Find all the file names in the wanted list
+            int wantedCount = 0;
+            int requestCount = 0;
+            string line;
+            List<string> wantedFileNames = new List<string>();
+            List<string> requestFileNames = new List<string>();
+            StreamReader wantedFile = new StreamReader(wantedListFile);
+            while ((line = wantedFile.ReadLine()) != null)
+            {
+                wantedFileNames.Add(line);
+                wantedCount++;
+            }
+
+            Console.WriteLine("Scanning for " + wantedCount + " wanted files...");
+            Console.WriteLine();
+            int i = 0;
+            //Compare each line of the directory list to the wanted list
+            var lineCount = File.ReadLines(dirListFile).Count();
+            StreamReader dirFile = new StreamReader(dirListFile);
+            while ((line = dirFile.ReadLine()) != null)
+            {
+                Console.CursorTop--;
+                bool added = false;
+                i++;
+                int percentDone = (int)Math.Round((double)(100 * i) / lineCount);
+                Console.Write(percentDone.ToString() + "% - ");
+                if (line.ToLower().IndexOf(" copy") == -1)
+                {
+                    if (wantedFileNames.IndexOf(line) != -1)
+                    {
+                        requestFileNames.Add(line);
+                        objWriter.WriteLine(line + "," + line);
+                        added = true;
+                        requestCount++;
+                    }
+                    else
+                    {
+                        AppVersionDefinition checkApp = ExtractAppVersionDefinition(line);
+                        if (line.IndexOf("britannica") != -1)
+                        { 
+                            //Console.WriteLine("got one!"); 
+                        }
+                        foreach (string wantFile in wantedFileNames)
+                        {
+                            if (wantFile.IndexOf("britannica") != -1)
+                            { 
+                                //Console.WriteLine("got another one!"); 
+                            }
+                            AppVersionDefinition thisApp = ExtractAppVersionDefinition(wantFile);
+                            if (thisApp.publisherPrefix != null && thisApp.publisherPrefix != "" && thisApp.publisherPrefix == checkApp.publisherPrefix)
+                            {
+                                if (thisApp.appNameSuffix != null && thisApp.appNameSuffix != "" && (thisApp.appNameSuffix == checkApp.appNameSuffix || thisApp.appNameSuffix.Contains(checkApp.appNameSuffix) || checkApp.appNameSuffix.Contains(thisApp.appNameSuffix)))
+                                {
+                                    if (!added)
+                                    {
+                                        requestFileNames.Add(line);
+                                        objWriter.WriteLine(wantFile + "," + line);
+                                        added = true;
+                                        requestCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (added)
+                    Console.Write("MATCH!");
+                else
+                    Console.Write("      ");
+                Console.WriteLine();
+            }
+
+            //Finalize report
+            objWriter.Close();
+            Console.WriteLine();
+            Console.WriteLine("Total Files Scanned:      " + i);
+            Console.WriteLine("Total New Requests: " + requestFileNames.Count);
+            Console.WriteLine();
+            Console.WriteLine("Missing Item report: " + RequestedPackageReport);
+        }
+
         public static List<string> FindPossibleMatchesInFolder(string fileName, string searchFolder)
         {
             List<string> possibleMatches = new List<string>();
@@ -1468,22 +1634,37 @@ namespace webOS.AppCatalog
                     if (versionNumberParts.Length > 2)
                         int.TryParse(versionNumberParts[2], out thisApp.buildVersion);
                 }
-                thisApp.platform = fileNameParts[^1].Replace(".ipk", "");
+                if (fileNameParts[^1].Replace(".ipk", "") != versionNumber)
+                    thisApp.platform = fileNameParts[^1].Replace(".ipk", "");
             }
             string[] packageNameParts = thisApp.packageName.Split(".");
             
             //Rule out common app name modifiers
             int actualAppNamePos = packageNameParts.Length-1;
+
             List<string> commonAppModifiers = GetCommonAppNameModifiers();
             for (var i=packageNameParts.Length-1; i > 0; i--)
             {
-                if (commonAppModifiers.Contains(packageNameParts[i]))
+                var thisPartMod = "";
+                var thisPartSep = packageNameParts[i].Split("-");
+                if (thisPartSep.Length > 0)
+                    thisPartMod = thisPartSep[thisPartSep.Length - 1];
+                if (commonAppModifiers.Contains(packageNameParts[i]) || commonAppModifiers.Contains(thisPartMod))
                 {
-                    thisApp.appNameModifier = packageNameParts[i];
-                    if (i > 0)
+                    /*if (thisPartMod != "")
                     {
-                        actualAppNamePos = i - 1;
+                        packageNameParts[i] = packageNameParts[i].Replace(thisPartMod, "");
+                        packageNameParts[i] = packageNameParts[i].Replace("-", "");
+                        thisApp.appNameModifier = thisPartMod;
                     }
+                    else
+                    {*/
+                        thisApp.appNameModifier = packageNameParts[i];
+                        if (i > 0)
+                        {
+                            actualAppNamePos = i - 1;
+                        }
+                   // }
                 }
             }
             thisApp.appNameSuffix = packageNameParts[actualAppNamePos];
@@ -1504,14 +1685,23 @@ namespace webOS.AppCatalog
             commonModifiers.Add("lite");
             commonModifiers.Add("free");
             commonModifiers.Add("webos");
-            commonModifiers.Add("app");
             commonModifiers.Add("touchpad");
+            commonModifiers.Add("uk");
+            commonModifiers.Add("us");
+            commonModifiers.Add("touchpad");
+            commonModifiers.Add("na");
+            commonModifiers.Add("eu");
             return commonModifiers;
         }
 
         public static List<AppDefinition> ReadCatalogFile(string catalogFileName)
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<List<AppDefinition>>(File.ReadAllText(catalogFileName));
+        }
+
+        public static List<AppDefinitionOld> ReadOldCatalogFile(string catalogFileName)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<AppDefinitionOld>>(File.ReadAllText(catalogFileName));
         }
 
         public static void WriteCatalogFile(string catalogName, List<AppDefinition> newAppCatalog)

@@ -26,6 +26,27 @@ namespace webOS.AppCatalog
     }
 
     [JsonObject]
+    public class AppDefinitionOld
+    {
+        public int id;
+        public string title;
+        public string author;
+        public string summary;
+        public string appIcon;
+        public string appIconBig;
+        public string category;
+        public string vendorId;
+        public bool Pixi;
+        public bool Pre;
+        [JsonProperty(PropertyName = "Pre 2")]
+        public bool Pre2;
+        public bool Pre3;
+        public bool Veer;
+        public bool TouchPad;
+        public bool touchpad_exclusive;
+    }
+
+    [JsonObject]
     public class ScreenshotDefinition
     {
         public string screenshot;
