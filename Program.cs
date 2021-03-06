@@ -1556,8 +1556,15 @@ namespace webOS.AppCatalog
                     {
                         if (myJObject["attributes"]["provides"]["dockMode"].ToString() == "True")
                         {
-                            Console.WriteLine(appObj.title + "," + myJObject["publicApplicationId"].ToString());
+                            Console.Write(appObj.title);
+                            try
+                            {
+                                Console.Write(",http://appcatalog.webosarchive.com/AppPackages/" + myJObject["filename"].ToString());
+                            }
+                            catch (Exception whoCares) { }
+                            
                             x++;
+                            Console.WriteLine();
                         }
                     }
                     catch (Exception iEx)
