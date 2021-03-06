@@ -122,10 +122,12 @@ namespace webOS.AppCatalog
             Console.WriteLine("H) Find and ingest highest update version, including metadata update");
             Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
+            Console.WriteLine("P) Add adult rating field");
             Console.WriteLine("D) Remove duplicate AppUpdates from AppUnknown");
             Console.WriteLine("S) Find and insert star ratings");
             Console.WriteLine("T) Search for catalog matches from Text file");
-            Console.WriteLine("X) Exit");
+            Console.WriteLine("X) Search for Exhibition apps");
+            Console.WriteLine("Q) Quit");
             Console.WriteLine();
             Console.Write("Selection: ");
         }
@@ -261,6 +263,20 @@ namespace webOS.AppCatalog
                         appCatalog = FindNextAvailCatalogNum(appCatalog);
                         return true;
                     }
+                case ConsoleKey.P:
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        string origMasterData = Path.Combine(appCatalogDir, "extantAppData.json");
+                        Console.WriteLine("Original Master Data: " + origMasterData);
+                        Console.WriteLine("Enter alternate path, or press enter: ");
+                        string strInputPath = Console.ReadLine();
+                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
+                            origMasterData = strInputPath;
+
+                        AddAdultRating();
+                        return true;
+                    }
                 case ConsoleKey.D:
                     {
                         Console.WriteLine();
@@ -327,7 +343,14 @@ namespace webOS.AppCatalog
                         CompareDirListToWantedList(wantedListFile, dirListFile);
                         return true;
                     }
-                case ConsoleKey.X:  //Quit
+                case ConsoleKey.X:  //Search for Exhibition apps
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        FindExhibitionApps();
+                        return true;
+                    }
+                case ConsoleKey.Q:  //Quit
                     {
                         Console.WriteLine();
                         Console.WriteLine();
@@ -1473,6 +1496,86 @@ namespace webOS.AppCatalog
                     WriteCatalogFile(writeFileName, thisAppData);
                 }
             }                
+        }
+
+        public static void AddAdultRating()
+        {
+            //Read origMasterDataFile into memory
+            Console.WriteLine("Reading original catalog...");
+            //List<AppDefinitionOld> OriginalAppData = ReadOldCatalogFile(origMasterDataFile);
+            //For each .json file
+            foreach (string checkFileName in Directory.GetFiles(appCatalogDir, "*.json"))
+            {
+                Console.WriteLine("Correcting " + Path.GetFileName(checkFileName) + "...");
+                //Read it into memory
+                List<AppDefinition> thisAppDataOld = ReadCatalogFile(checkFileName);
+                //For each app in the file
+                foreach (AppDefinition thisApp in thisAppDataOld)
+                {
+                    //Add the field
+                    /*foreach (AppDefinitionOld sourceApp in OriginalAppData)
+                    {
+                        //check origMasterDataFile in memory for matching appid
+                        //If they're the same
+                        if (thisApp.id == sourceApp.id)
+                        {
+                            //Copy "Pre 2" value in orig to Pre2 value in this file
+                            thisApp.Pre2 = sourceApp.Pre2;
+                        }
+                    }*/
+                }
+                //string writeFileName = Path.GetFileNameWithoutExtension(checkFileName);
+                //writeFileName = writeFileName.Replace("AppData", "");
+                //WriteCatalogFile(writeFileName, thisAppData);
+            }
+        }
+
+        public static void FindExhibitionApps()
+        {
+            //Check each metadata file to make sure its in the catalog file
+            Console.WriteLine();
+            Console.WriteLine("Looking for star ratings...");
+            Console.WriteLine();
+
+            catalogFile = Path.Combine(appCatalogDir, "extantAppData.json");
+            Console.WriteLine("Reading Extant Catalog: " + catalogFile + "...");
+            Console.WriteLine();
+            List<AppDefinition> extantCatalog = ReadCatalogFile(catalogFile);
+            int x = 0;
+            foreach (var appObj in extantCatalog)
+            {
+                var checkFile = Path.Combine(appMetaDir, appObj.id + ".json");
+                var metaFile = Path.GetFileName(checkFile);
+                //Console.WriteLine(checkFile + " ");
+
+                string myJsonString = File.ReadAllText(checkFile);
+                JObject myJObject = JObject.Parse(myJsonString);
+                try
+                {
+                    try
+                    {
+                        if (myJObject["attributes"]["provides"]["dockMode"].ToString() == "True")
+                        {
+                            Console.WriteLine(appObj.title + "," + myJObject["publicApplicationId"].ToString());
+                            x++;
+                        }
+                    }
+                    catch (Exception iEx)
+                    {
+                        //Oh well
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex.Message);
+                    Console.ReadLine();
+                }
+            }
+
+            //Finalize report
+            Console.WriteLine();
+            Console.WriteLine("Total Exhibition Apps Found: " + x.ToString());
+            Console.WriteLine();
         }
 
         public static void CompareDirListToWantedList(string wantedListFile, string dirListFile)
