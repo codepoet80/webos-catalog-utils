@@ -16,5 +16,9 @@ if [%2] NEQ [] (
 copy "%sourcePath%\masterAppData.json" "%catalogPath%" /y
 copy "%sourcePath%\extantAppData.json" "%servicePath%" /y
 echo.
+cd "%sourcePath%\AppMetadata"
+git add .
+git commit -m "update metadata"
+git push
 echo Done!
 powershell sleep -s 2
