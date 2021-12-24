@@ -16,8 +16,9 @@ namespace webOS.AppCatalog
     {
         #region Environment and UI
 
-        public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "..\\..\\..\\");
-        public static string appCatalogDir = Path.Combine(workingDir, "..\\_webOSAppCatalog");  //Change this path to point to where the archive lives
+        //TODO: These need to come from a config file
+        public static string workingDir = Path.Combine(Directory.GetCurrentDirectory(), "../../../");
+        public static string appCatalogDir = Path.Combine(workingDir, "../_webOSAppCatalog");  //Change this path to point to where the archive lives
         public static string catalogFile;
 
         public static string incomingDir = "Incoming";
