@@ -18,12 +18,15 @@ echo Copying master data...
 copy "%sourcePath%\masterAppData.json" "%catalogPath%" /y
 echo Copying extant data...
 copy "%sourcePath%\extantAppData.json" "%servicePath%" /y
+copy "%sourcePath%\extantAppData.json" "%sourcePath%\..\webos-catalog-backend" /y
 echo.
 cd "%sourcePath%\AppMetadata"
 git add .
 git commit -m "update metadata"
-git push
+cd "%sourcePath%\..\webos-catalog-backend"
+git add .
+git commit -m "update extant data"
 echo Done!
 echo.
-echo Remember to git push from local and git pull from remote!
+echo Remember to git push from local and git pull from remote on BOTH repos!
 powershell sleep -s 3

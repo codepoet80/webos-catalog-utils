@@ -96,12 +96,14 @@ namespace webOS.AppCatalog.AppEditor
             txtSummary.Text = thisApp.summary;
             txtAppIcon.Text = thisApp.appIcon;
             txtAppIconBig.Text = thisApp.appIconBig;
+            checkAdult.IsChecked = thisApp.Adult;
             checkPixi.IsChecked = thisApp.Pixi;
             checkVeer.IsChecked = thisApp.Veer;
             checkPre.IsChecked = thisApp.Pre;
             checkPre2.IsChecked = thisApp.Pre2;
             checkPre3.IsChecked = thisApp.Pre3;
             checkTouchPad.IsChecked = thisApp.TouchPad;
+            checkLuneOS.IsChecked = thisApp.LuneOS;
             radioTouchPad.IsChecked = thisApp.touchpad_exclusive;
         }
 
@@ -273,8 +275,10 @@ namespace webOS.AppCatalog.AppEditor
                 appUpdate.category = comboCategory.Text;
                 appUpdate.appIcon = txtAppIcon.Text;
                 appUpdate.appIconBig = txtAppIconBig.Text;
+                appUpdate.Adult = (bool)checkAdult.IsChecked;
                 appUpdate.touchpad_exclusive = (bool)radioTouchPad.IsChecked;
                 appUpdate.TouchPad = (bool)checkTouchPad.IsChecked;
+                appUpdate.LuneOS = (bool)checkLuneOS.IsChecked;
                 appUpdate.Pre3 = (bool)checkPre3.IsChecked;
                 appUpdate.Pre2 = (bool)checkPre2.IsChecked;
                 appUpdate.Pre = (bool)checkPre.IsChecked;

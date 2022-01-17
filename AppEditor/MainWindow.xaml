@@ -46,26 +46,28 @@
                 </TransformGroup>
             </Label.RenderTransform>
         </Label>
-        <TextBox x:Name="txtSummary" HorizontalAlignment="Left" Height="100" Margin="327,20,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="227"/>
+        <TextBox x:Name="txtSummary" HorizontalAlignment="Left" Height="74" Margin="327,20,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="227"/>
+        <CheckBox x:Name="checkAdult" Content="Mark as Adult" HorizontalAlignment="Left" Height="19" Margin="325,100,0,0" VerticalAlignment="Top" Width="94" Checked="checkPhone_Checked"/>
         
         <Label Content="AppIcon" HorizontalAlignment="Left" Margin="568,20,0,0" VerticalAlignment="Top" Width="59"/>
-        <TextBox x:Name="txtAppIcon" HorizontalAlignment="Left" Margin="632,25,0,0" Text="" TextWrapping="NoWrap" VerticalAlignment="Top" Width="133"/>
+        <TextBox x:Name="txtAppIcon" HorizontalAlignment="Left" Margin="632,25,0,0" Text="" TextWrapping="NoWrap" VerticalAlignment="Top" Width="165"/>
         <Label Content="BigIcon" HorizontalAlignment="Left" Margin="568,45,0,0" VerticalAlignment="Top" Width="59"/>
-        <TextBox x:Name="txtAppIconBig" HorizontalAlignment="Left" Margin="632,50,0,0" Text="" TextWrapping="NoWrap" VerticalAlignment="Top" Width="133"/>
+        <TextBox x:Name="txtAppIconBig" HorizontalAlignment="Left" Margin="632,50,0,0" Text="" TextWrapping="NoWrap" VerticalAlignment="Top" Width="165"/>
         <RadioButton x:Name="radioTouchPad" Content="TP Exclusive" HorizontalAlignment="Left" Height="23" Margin="568,75,0,0" VerticalAlignment="Top" Width="84" Checked="RadioButton_Checked"/>
-        <CheckBox x:Name="checkTouchPad" Content="TouchPad" HorizontalAlignment="Left" Height="23" Margin="664,75,0,0" VerticalAlignment="Top" Width="80"/>
-        <CheckBox x:Name="checkPre3" Content="Pre3" HorizontalAlignment="Left" Height="19" Margin="744,75,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
-        <CheckBox x:Name="checkPre" Content="Pre" HorizontalAlignment="Left" Height="19" Margin="568,100,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
-        <CheckBox x:Name="checkPre2" Content="Pre2" HorizontalAlignment="Left" Height="19" Margin="630,100,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
-        <CheckBox x:Name="checkPixi" Content="Pixi" HorizontalAlignment="Left" Height="19" Margin="690,100,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
-        <CheckBox x:Name="checkVeer" Content="Veer" HorizontalAlignment="Left" Height="19" Margin="744,100,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
-        
+        <CheckBox x:Name="checkTouchPad" Content="TouchPad" HorizontalAlignment="Left" Height="23" Margin="662,75,0,0" VerticalAlignment="Top" Width="80"/>
+        <CheckBox x:Name="checkLuneOS" Content="LuneOS" HorizontalAlignment="Left" Height="23" Margin="744,75,0,0" VerticalAlignment="Top" Width="80"/>
+        <CheckBox x:Name="checkPre" Content="Pre" HorizontalAlignment="Left" Height="19" Margin="568,100,0,0" VerticalAlignment="Top" Width="44" Checked="checkPhone_Checked"/>
+        <CheckBox x:Name="checkPre2" Content="Pre2" HorizontalAlignment="Left" Height="19" Margin="608,100,0,0" VerticalAlignment="Top" Width="44" Checked="checkPhone_Checked"/>
+        <CheckBox x:Name="checkPixi" Content="Pixi" HorizontalAlignment="Left" Height="19" Margin="656,100,0,0" VerticalAlignment="Top" Width="44" Checked="checkPhone_Checked"/>
+        <CheckBox x:Name="checkVeer" Content="Veer" HorizontalAlignment="Left" Height="19" Margin="698,100,0,0" VerticalAlignment="Top" Width="44" Checked="checkPhone_Checked"/>
+        <CheckBox x:Name="checkPre3" Content="Pre3" HorizontalAlignment="Left" Height="19" Margin="744,100,0,0" VerticalAlignment="Top" Width="64" Checked="checkPhone_Checked"/>
+
         <ScrollViewer HorizontalAlignment="Center" Height="370" Margin="0,145,0,0" VerticalAlignment="Top" Width="780" BorderThickness="5">
             <Border BorderThickness="1" BorderBrush="Black">
                 <TextBox x:Name="txtMetaJson" Text="" TextWrapping="Wrap" GotFocus="txtMetaJson_GotFocus" />
             </Border>
         </ScrollViewer>
-        
+
         <TextBox x:Name="txtFilename" HorizontalAlignment="Left" Margin="87,539,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="480" Height="26" TextChanged="txtFilename_TextChanged"/>
         <Button x:Name="btnBrowse" Content="File" HorizontalAlignment="Left" Height="26" Margin="23,539,0,0" VerticalAlignment="Top" Width="55" Click="btnBrowse_Click"/>
         <Button x:Name="btnOpen" Content="Open" HorizontalAlignment="Left" Height="26" Margin="580,539,0,0" VerticalAlignment="Top" Width="60" Click="btnOpen_Click" IsEnabled="False"/>
