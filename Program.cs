@@ -121,9 +121,9 @@ namespace webOS.AppCatalog
             Console.WriteLine("9) Build missing package with possible match report from folder");
             Console.WriteLine("F) Fix Pre 2 Compatibility metadata");
             Console.WriteLine("H) Find and ingest highest update version, including metadata update");
+            Console.WriteLine("L) Add New Metadata");
             Console.WriteLine("M) Stage approved matches and update metadata files");
             Console.WriteLine("N) Find next available catalog number, optionally insert new");
-            Console.WriteLine("P) Add adult rating field");
             Console.WriteLine("D) Remove duplicate AppUpdates from AppUnknown");
             Console.WriteLine("S) Find and insert star ratings");
             Console.WriteLine("T) Search for catalog matches from Text file");
@@ -136,13 +136,13 @@ namespace webOS.AppCatalog
         public static bool GetMenuChoice(List<AppDefinition> appCatalog)
         {
             ConsoleKeyInfo choice = Console.ReadKey();
+            Console.WriteLine();
+            Console.WriteLine();
+
             switch (choice.Key)
             {
                 case ConsoleKey.D1: //Index packages against metadata to destination folder
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         string searchFolder = incomingDir;
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -156,9 +156,6 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.D2: //Strip filename prefixes into subfolder
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         string searchFolder = incomingDir;
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -172,23 +169,16 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.D3: //Reverse check catalog from metadata
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         ReverseCatalogFromMetaData(appCatalog);
                         return true;
                     }
                 case ConsoleKey.D4: //Update catalog from metadata
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         UpdateMetaFileJSONStructure();
                         return true;
                     }
                 case ConsoleKey.D5: //Reverse check catalog from folder
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         string searchFolder = appPackageDir;
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -202,8 +192,6 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.D6: //Generate extant Catalog
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         Console.WriteLine("Catalog extant files to: " + appCatalogDir);
                         Console.WriteLine("Catalog missing files to: " + appCatalogDir);
                         Console.WriteLine();
@@ -212,16 +200,11 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.D7: //Scrape Folder for Icons
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         GetAppIconsFromCatalog(appCatalog);
                         return true;
                     }
                 case ConsoleKey.D8: //Search multiple sources for Images
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         string searchFolder = Path.Combine(appCatalogDir, "_AppImages");
                         Console.WriteLine("Current Search Folder: " + searchFolder);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -234,8 +217,6 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.D9: //Build missing app info report
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         string missingMasterDataFile = catalogFile.Replace("master", "Missing");
 
                         string searchFolder = appUnknownDir;
@@ -248,48 +229,34 @@ namespace webOS.AppCatalog
                         BuildMissingPackageInfoReport(missingMasterDataFile, searchFolder);
                         return true;
                     }
+                case ConsoleKey.L:
+                    {
+                        Console.WriteLine("Adding New Metadata to Master catalog file...");
+                        AddNewMetaData(catalogFile);
+                        System.Threading.Thread.Sleep(1000);
+                        string extantDataFile = catalogFile.Replace("master", "extant");
+                        Console.WriteLine("Adding New Metadata to Extant catalog file...");
+                        AddNewMetaData(extantDataFile);
+                        System.Threading.Thread.Sleep(1000);
+                        return true;
+                    }
                 case ConsoleKey.M:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         StageAndUpdateApprovedMatches(appCatalog, Path.Combine(appCatalogDir, "ApprovedMatches.csv"));
                         return true;
                     }
                 case ConsoleKey.N:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         appCatalog = FindNextAvailCatalogNum(appCatalog);
-                        return true;
-                    }
-                case ConsoleKey.P:
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine();
-                        string origMasterData = Path.Combine(appCatalogDir, "extantAppData.json");
-                        Console.WriteLine("Original Master Data: " + origMasterData);
-                        Console.WriteLine("Enter alternate path, or press enter: ");
-                        string strInputPath = Console.ReadLine();
-                        if (strInputPath.Length > 1 && File.Exists(strInputPath))
-                            origMasterData = strInputPath;
-
-                        AddAdultRating();
                         return true;
                     }
                 case ConsoleKey.D:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         RemoveAppUpdateDuplicatesFromAppUnknown();
                         return true;
                     }
                 case ConsoleKey.F:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         string origMasterData = Path.Combine(appCatalogDir, "Pre2AppData.json");
                         Console.WriteLine("Original Master Data: " + origMasterData);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -302,16 +269,11 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.H:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
-
                         FindHighestUpdateVersion();
                         return true;
                     }
                 case ConsoleKey.S:
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         string ratingsDir = appReviewDir;
                         Console.WriteLine("Current Reviews Folder: " + ratingsDir);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -326,8 +288,6 @@ namespace webOS.AppCatalog
                     {
                         string wantedListFile = Path.Combine(workingDir, reportsDir, "wanted.txt");
                         string dirListFile = Path.Combine(appCatalogDir, "DirListing.txt");
-                        Console.WriteLine();
-                        Console.WriteLine();
                         
                         Console.WriteLine("Wanted List file: " + wantedListFile);
                         Console.WriteLine("Enter alternate path, or press enter: ");
@@ -346,21 +306,19 @@ namespace webOS.AppCatalog
                     }
                 case ConsoleKey.X:  //Search for Exhibition apps
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         FindExhibitionApps();
                         return true;
                     }
                 case ConsoleKey.Q:  //Quit
                     {
-                        Console.WriteLine();
-                        Console.WriteLine();
                         Console.WriteLine("Quitting");
                         return false;
                     }
                 default:
                     {
-                        Console.CursorTop -= 16;
+                        Console.Beep();
+                        Console.Clear();
+                        ShowMenu();
                         return true;
                     }
             }
@@ -1499,36 +1457,33 @@ namespace webOS.AppCatalog
             }                
         }
 
-        public static void AddAdultRating()
+        public static void AddNewMetaData(string useMasterDataFile)
         {
-            //Read origMasterDataFile into memory
-            Console.WriteLine("Reading original catalog...");
-            //List<AppDefinitionOld> OriginalAppData = ReadOldCatalogFile(origMasterDataFile);
-            //For each .json file
-            foreach (string checkFileName in Directory.GetFiles(appCatalogDir, "*.json"))
+            Console.WriteLine("Reading original file: " + useMasterDataFile + "...");
+            Console.WriteLine();
+            List<AppDefinition> thisAppData = ReadCatalogFile(useMasterDataFile);
+
+            int i = 0;
+            foreach (AppDefinition thisApp in thisAppData)
             {
-                Console.WriteLine("Correcting " + Path.GetFileName(checkFileName) + "...");
-                //Read it into memory
-                List<AppDefinition> thisAppDataOld = ReadCatalogFile(checkFileName);
-                //For each app in the file
-                foreach (AppDefinition thisApp in thisAppDataOld)
+                i++;
+                int percentDone = (int)Math.Round((double)(100 * i) / thisAppData.Count);
+                Console.CursorTop--;
+                Console.WriteLine("Modifying " + i.ToString() + " - " + percentDone.ToString() + "% Done");
+
+                if (!thisApp.LuneOS)
                 {
-                    //Add the field
-                    /*foreach (AppDefinitionOld sourceApp in OriginalAppData)
-                    {
-                        //check origMasterDataFile in memory for matching appid
-                        //If they're the same
-                        if (thisApp.id == sourceApp.id)
-                        {
-                            //Copy "Pre 2" value in orig to Pre2 value in this file
-                            thisApp.Pre2 = sourceApp.Pre2;
-                        }
-                    }*/
+                    thisApp.LuneOS = false;
                 }
-                //string writeFileName = Path.GetFileNameWithoutExtension(checkFileName);
-                //writeFileName = writeFileName.Replace("AppData", "");
-                //WriteCatalogFile(writeFileName, thisAppData);
+                if (!thisApp.Adult)
+                {
+                    thisApp.Adult = false;
+                }
             }
+            string writeFileName = Path.GetFileNameWithoutExtension(useMasterDataFile);
+            writeFileName = writeFileName.Replace("AppData", "");            
+            WriteCatalogFile(writeFileName, thisAppData);
+            Console.WriteLine();
         }
 
         public static void FindExhibitionApps()

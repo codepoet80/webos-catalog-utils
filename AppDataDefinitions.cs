@@ -23,6 +23,8 @@ namespace webOS.AppCatalog
         public bool Veer;
         public bool TouchPad;
         public bool touchpad_exclusive;
+        public bool LuneOS;
+        public bool Adult;
     }
 
     [JsonObject]
