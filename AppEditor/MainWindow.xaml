@@ -47,7 +47,7 @@
             </Label.RenderTransform>
         </Label>
         <TextBox x:Name="txtSummary" HorizontalAlignment="Left" Height="74" Margin="327,20,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="227"/>
-        <CheckBox x:Name="checkAdult" Content="Mark as Adult" HorizontalAlignment="Left" Height="19" Margin="325,100,0,0" VerticalAlignment="Top" Width="94" Checked="checkPhone_Checked"/>
+        <CheckBox x:Name="checkAdult" Content="Mark as Adult" HorizontalAlignment="Left" Height="19" Margin="325,100,0,0" VerticalAlignment="Top" Width="94"/>
         
         <Label Content="AppIcon" HorizontalAlignment="Left" Margin="568,20,0,0" VerticalAlignment="Top" Width="59"/>
         <TextBox x:Name="txtAppIcon" HorizontalAlignment="Left" Margin="632,25,0,0" Text="" TextWrapping="NoWrap" VerticalAlignment="Top" Width="165"/>
