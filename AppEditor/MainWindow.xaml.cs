@@ -88,6 +88,7 @@ namespace webOS.AppCatalog.AppEditor
             txtAppId.Text = thisApp.id.ToString();
             txtTitle.Text = thisApp.title;
             txtAuthor.Text = thisApp.author;
+            txtVendorID.Text = thisApp.vendorId;
             foreach (ComboBoxItem comboChoice in comboCategory.Items)
             {
                 if (comboChoice.Content.ToString().ToLower() == thisApp.category.ToLower())
@@ -272,6 +273,7 @@ namespace webOS.AppCatalog.AppEditor
                 appUpdate.title = txtTitle.Text;
                 appUpdate.summary = txtSummary.Text;
                 appUpdate.author = txtAuthor.Text;
+                appUpdate.vendorId = txtVendorID.Text;
                 appUpdate.category = comboCategory.Text;
                 appUpdate.appIcon = txtAppIcon.Text;
                 appUpdate.appIconBig = txtAppIconBig.Text;
