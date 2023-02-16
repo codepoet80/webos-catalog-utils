@@ -1,6 +1,7 @@
 ﻿//Check for Unknown Apps
 //  Given an app list from the App Museum, generated from a directory listing
 //  AND given an inventory from a device, generated from the palm SDK
+//  (more details here: https://docs.webosarchive.org/appinventory/)
 //  Generate a list of apps on the device that don't exist in the App Museum
 
 //environment stuff
