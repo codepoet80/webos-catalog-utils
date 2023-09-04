@@ -1,4 +1,4 @@
-//Check for Unknown Apps
+﻿//Check for Unknown Apps
 //  Given an app list from the App Museum, generated from a directory listing
 //  AND given an inventory from a device, generated from the palm SDK
 //  Generate a list of apps on the device that don't exist in the App Museum
@@ -28,6 +28,10 @@ List<string> matchWanted = new List<string>();
 
 List<string> cleanupCmds = new List<string>();
 
+List<string> manualReview = new List<string>();
+
+List<string> skippedFiles = new List<string>();
+
 //UI stuff
 Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("webOS Catalog Compare");
@@ -36,7 +40,8 @@ Console.WriteLine();
 
 //read extant catalog
 //  generate from server like: ls > ExtantApps.txt
-if (File.Exists(Path.Combine(inventoryPath, skipFiles["extantList"]))) {
+if (File.Exists(Path.Combine(inventoryPath, skipFiles["extantList"])))
+{
     knownApps = readFileIntoInventory(inventoryPath, skipFiles["extantList"], knownApps, false);
     knownAppsExact = readFileIntoInventory(inventoryPath, skipFiles["extantList"], knownAppsExact, true);
     Console.WriteLine("Count of known apps now: " + knownApps.Count);
@@ -50,6 +55,8 @@ else
     Console.WriteLine("Press a key to proceed...");
     Console.WriteLine();
     Console.ReadKey();
+    Environment.Exit(1);
+    
 }
 
 //read Unmatched list
@@ -70,6 +77,7 @@ else
     Console.WriteLine("Press a key to proceed...");
     Console.WriteLine();
     Console.ReadKey();
+    Environment.Exit(1);
 }
 
 //read Preware catalog
@@ -87,7 +95,7 @@ Console.WriteLine("Count of known apps now: " + knownApps.Count);
 
 //read wanted list
 await getRemoteFile(wantedUrl, Path.Combine(inventoryPath, skipFiles["wantedList"]));
-Console.WriteLine(); 
+Console.WriteLine();
 wantedApps = readFileIntoInventory(inventoryPath, skipFiles["wantedList"], wantedApps, false);
 wantedAppsExact = readFileIntoInventory(inventoryPath, skipFiles["wantedList"], wantedAppsExact, true);
 Console.WriteLine("Count of wanted apps now: " + wantedApps.Count);
@@ -96,10 +104,11 @@ Console.WriteLine();
 //check each inventory file
 //  Use palm sdk to generate like: palm-log -l > thisdevice.txt
 //  (manually remove any lines from text file that are not app listings)
+var foundInventoryFile = false;
 foreach (string file in Directory.EnumerateFiles(inventoryPath, "*.txt"))
 {
     //Console.WriteLine("Checking inventory: " + Path.GetFileName(file) + " contained? " + skipFiles.ContainsValue(Path.GetFileName(file)));
-    
+
     if (!skipFiles.ContainsValue(Path.GetFileName(file)))
     {
         var contents = File.ReadAllLines(file);
@@ -150,6 +159,8 @@ foreach (string file in Directory.EnumerateFiles(inventoryPath, "*.txt"))
                             {
                                 Console.ForegroundColor = ConsoleColor.Cyan;
                                 Console.WriteLine("Skipping " + cleanline + " because prefix: " + prefix);
+                                skippedFiles.Add(filename);
+                                cleanupCmds.Add("rm " + filename);
                             }
                         }
                     }
@@ -171,6 +182,16 @@ foreach (string file in Directory.EnumerateFiles(inventoryPath, "*.txt"))
                             matchWanted.Add(line);
                             Console.WriteLine();
                             lineDone = true;
+                        } 
+                        else
+                        {
+                            if (closeMatch == "") {
+                                manualReview.Add(filename);
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.Write( " MANUAL review");
+                                Console.WriteLine();
+                                lineDone = true;
+                            }
                         }
                         if (!lineDone)
                             Console.WriteLine();
@@ -178,8 +199,14 @@ foreach (string file in Directory.EnumerateFiles(inventoryPath, "*.txt"))
                 }
             }
         }
+        foundInventoryFile = true;
+        Console.WriteLine("Read inventory file:" + Path.GetFileName(file));
         Console.ForegroundColor = ConsoleColor.White;
     }
+}
+if (!foundInventoryFile)
+{
+    Console.WriteLine("No inventory file found to check. Generate locally like: ls > inventory.txt");
 }
 
 Console.WriteLine();
@@ -188,6 +215,22 @@ Console.WriteLine("===============================");
 foreach (string app in matchWanted)
 {
     Console.WriteLine("* " + app);
+}
+
+Console.WriteLine();
+Console.WriteLine("Skipped files: ");
+Console.WriteLine("=======================");
+foreach (string file in skippedFiles)
+{
+    Console.WriteLine(file);
+}
+
+Console.WriteLine();
+Console.WriteLine("Manual reviews: " + manualReview.Count);
+Console.WriteLine("=======================");
+foreach (string file in manualReview)
+{
+    Console.WriteLine(file);
 }
 
 Console.WriteLine();
@@ -223,7 +266,8 @@ async Task getRemoteFile(string url, string filePath)
     await file.WriteAsync(result);
 }
 
-async Task ParsePrewareFeed(string inputPath, string outputPath) {
+async Task ParsePrewareFeed(string inputPath, string outputPath)
+{
     StreamWriter sw = new StreamWriter(outputPath, true);
     var contents = File.ReadAllLines(inputPath);
     var count = 0;
